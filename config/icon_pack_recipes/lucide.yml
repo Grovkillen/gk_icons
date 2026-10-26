@@ -1,0 +1,20 @@
+# Lucide: how to add it as an icon pack. Text only; no icons ship with the plugin.
+# Steps: download the file from the page, unpack it, copy the "from" folder into a pack root as the pack's "folder",
+# put the pack.yml (below) beside the icons, and press Reload from disk in the icon library. The json files beside
+# the icons are not read. The zip has no licence file; the licence is in the project (ISC).
+name: Lucide
+homepage: https://lucide.dev
+download:
+  page: https://github.com/lucide-icons/lucide/releases
+  file: lucide-icons-<version>.zip
+verified: "1.61.0"
+packs:
+  - folder: lucide
+    from: icons
+    pack:
+      key: lucide
+      name: Lucide
+      license: ISC
+      attribution: "Lucide Contributors"
+      homepage: https://lucide.dev
+      mono: true

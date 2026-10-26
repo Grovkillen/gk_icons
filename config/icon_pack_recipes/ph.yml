@@ -1,0 +1,36 @@
+# Phosphor: how to add it as icon packs, one per weight. Text only; no icons ship with the plugin.
+# Steps: download the file from the page, unpack it, copy each pack's "from" folder into a pack root as the pack's
+# "folder" (with "strip" taken off the file names: acorn-bold.svg becomes acorn.svg), put the pack's pack.yml (below)
+# beside the icons, and press Reload from disk in the icon library. Duotone draws its light part in the text's colour
+# with opacity, so it is mono like the others.
+name: Phosphor
+homepage: https://phosphoricons.com
+download:
+  page: https://www.npmjs.com/package/@phosphor-icons/core
+  file: core-<version>.tgz
+verified: "2.1.1"
+license_file: package/LICENSE
+packs:
+  - folder: ph
+    from: package/assets/regular
+    pack: {key: ph, name: Phosphor, license: MIT, attribution: "Phosphor Icons", homepage: "https://phosphoricons.com", mono: true}
+  - folder: ph-thin
+    from: package/assets/thin
+    strip: "-thin"
+    pack: {key: ph-thin, name: Phosphor Thin, license: MIT, attribution: "Phosphor Icons", homepage: "https://phosphoricons.com", mono: true}
+  - folder: ph-light
+    from: package/assets/light
+    strip: "-light"
+    pack: {key: ph-light, name: Phosphor Light, license: MIT, attribution: "Phosphor Icons", homepage: "https://phosphoricons.com", mono: true}
+  - folder: ph-bold
+    from: package/assets/bold
+    strip: "-bold"
+    pack: {key: ph-bold, name: Phosphor Bold, license: MIT, attribution: "Phosphor Icons", homepage: "https://phosphoricons.com", mono: true}
+  - folder: ph-fill
+    from: package/assets/fill
+    strip: "-fill"
+    pack: {key: ph-fill, name: Phosphor Fill, license: MIT, attribution: "Phosphor Icons", homepage: "https://phosphoricons.com", mono: true}
+  - folder: ph-duotone
+    from: package/assets/duotone
+    strip: "-duotone"
+    pack: {key: ph-duotone, name: Phosphor Duotone, license: MIT, attribution: "Phosphor Icons", homepage: "https://phosphoricons.com", mono: true}

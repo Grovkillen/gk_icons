@@ -1,0 +1,264 @@
+<%# The icon library: look through every icon there is, search, choose a group, page through; a click copies how the icon
+    is written and shows it in the panel beside. Packs: a whole pack's state, only here. Groups: create, rename, state
+    with a reason, the members. Every form that changes a state has its button and records' shared reason field
+    beside it, as the other GK plugins have. %>
+<% html_title l(:label_gk_icons_library) %>
+<% gk_icons_assets %>
+<% admin = User.current.admin? %>
+<% reasons = defined?(GkRecords::Reasons) && respond_to?(:gk_records_reason_field) %>
+<% reason_field = lambda do |place, size, **opts|
+     reasons ? gk_records_reason_field(place, size: size, id: nil, **opts) : text_field_tag('reason', '', size: size, required: true, placeholder: l(:text_gk_icons_js_reason), 'aria-label': l(:text_gk_icons_js_reason), id: nil)
+   end %>
+<% badge = { 'active' => 'badge-status-closed', 'disabled' => 'badge-status-locked' } %>
+<h2><%= l(:label_gk_icons_library) %></h2>
+<% if admin %>
+  <div class="tabs">
+    <ul>
+      <% %w[icons packs groups].each do |t| %>
+        <li><%= link_to l("label_gk_icons_tab_#{t}"), gk_icons_library_path(tab: t), class: (@tab == t ? 'selected' : nil) %></li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<% if @tab == 'packs' %>
+  <%# the Packs tab: a whole pack's state; the button and the reason the place icons.choose asks for beside it %>
+  <p class="info"><%= l(:text_gk_icons_tab_packs) %></p>
+  <% if @packs.blank? %>
+    <p class="nodata"><%= l(:label_no_data) %></p>
+  <% else %>
+  <%# the box is the stylesheet's container: the values in the column In text show only while the table has room %>
+  <div class="autoscroll gk-icons-packs-box">
+  <table class="list gk-icons-packs">
+    <thead><tr><th><%= l(:field_name) %></th><th><%= l(:label_gk_icons_pack_key) %></th><th><%= l(:label_gk_icons_pack_count) %></th>
+      <th><%= l(:label_gk_icons_pack_license) %></th><th><%= l(:field_version) %></th><th><%= l(:field_status) %></th><th></th>
+      <th title="<%= l(:text_gk_icons_pack_text) %>"><%= l(:label_gk_icons_pack_text) %></th></tr></thead>
+    <tbody>
+    <% @packs.each do |p| %>
+      <% st = p.state %>
+      <tr id="gk-icons-pack-<%= p.key %>" class="<%= cycle('odd', 'even') %><%= ' gk-icons-pack-off' unless st == 'active' %>">
+        <td class="name"><%= p.name.presence || p.key %></td>
+        <td class="key"><code><%= p.key %></code></td>
+        <td class="count"><%= @counts[p.key] || 0 %></td>
+        <td class="text license"><%= p.license %></td>
+        <td class="version"><%= p.version %></td>
+        <%# the latest reason is the badge's title; every reason is in the pack's history in records %>
+        <td class="status"><span class="badge <%= badge.fetch(st, 'badge-private') %> gk-icons-pack-state gk-icons-pack-state-<%= st %>"<% if p.reason.present? %> title="<%= p.reason %>"<% end %>><%= l("text_gk_icons_js_state_#{st}") %></span></td>
+        <td class="buttons">
+          <% if st != 'missing' %>
+            <%# the state is chosen in the select and saved by Save, as in the Groups tab %>
+            <%= form_tag gk_icons_pack_state_path(key: p.key), method: :post, class: 'gk-icons-inline-form' do %>
+              <%= select_tag 'chosen', options_for_select(%w[active disabled].map { |c| [l("text_gk_icons_js_choose_#{c}"), c] }, st),
+                             'aria-label': l(:text_gk_icons_js_state), id: nil %>
+              <%= submit_tag l(:button_save), name: nil %>
+              <%= reason_field.call('icons.choose', 20) %>
+            <% end %>
+          <% end %>
+        </td>
+        <%# how the pack's icons sit in text: the height (1 is the capitals'), the place on the line (em, plus is up) and
+            the space at the sides (em), shown here where the table has room and changed in a window (core's modal) with
+            the text at three sizes. The fields start at the values in use; the pack's own (pack.yml, else the
+            defaults) are the placeholders %>
+        <td class="gk-icons-pack-text">
+          <% if st != 'missing' %>
+            <% base = GkIcons.text_base(p.key) %>
+            <% scale, shift, gap = GkIcons.text_fit(p.key) %>
+            <% first = GkIcons::Store.index.dig(p.key, :order)&.first %>
+            <span class="gk-icons-fit-now"><%= l(:text_gk_icons_fit_now, scale: scale, shift: shift, gap: gap) %></span>
+            <%= link_to gk_icon('adjust-in-text', l(:button_gk_icons_fit), icon_only: true), '#', class: 'icon icon-only gk-icons-fit-open',
+                        title: l(:text_gk_icons_fit_title), 'aria-label': l(:text_gk_icons_fit_title),
+                        data: { gk_icons_fit_open: p.key, name: p.name.presence || p.key, url: gk_icons_pack_text_path(key: p.key),
+                                scale: scale, shift: shift, gap: gap, ph_scale: base['scale'], ph_shift: base['shift'], ph_gap: base['gap'] } %>
+            <% if first %><template data-gk-icons-fit-sample="<%= p.key %>"><%= gk_icon_in_text("#{p.key}/#{first}", "#{p.key}/#{first}") %></template><% end %>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+    </tbody>
+  </table>
+  </div>
+  <%# the window for a pack's height and place in text (core's showModal); the script fills it from the row's link %>
+  <div id="gk-icons-fit-modal" style="display:none">
+    <h3 class="title"><%= l(:label_gk_icons_pack_text) %></h3>
+    <%= form_tag '#', method: :post, class: 'gk-icons-fit-form' do %>
+      <p class="info"><%= l(:text_gk_icons_pack_text) %></p>
+      <div class="tabular">
+        <p><label for="gk-icons-fit-scale"><%= l(:label_gk_icons_pack_text_scale) %></label>
+          <%= number_field_tag 'scale', nil, min: 0.5, max: 2, step: 0.05, id: 'gk-icons-fit-scale', data: { gk_icons_fit: 'scale' } %></p>
+        <p><label for="gk-icons-fit-shift"><%= l(:label_gk_icons_pack_text_shift) %></label>
+          <%= number_field_tag 'shift', nil, min: -0.5, max: 0.5, step: 0.025, id: 'gk-icons-fit-shift', data: { gk_icons_fit: 'shift' } %></p>
+        <p><label for="gk-icons-fit-gap"><%= l(:label_gk_icons_pack_text_gap) %></label>
+          <%= number_field_tag 'gap', nil, min: 0, max: 0.5, step: 0.025, id: 'gk-icons-fit-gap', data: { gk_icons_fit: 'gap' } %></p>
+      </div>
+      <%# the capitals beside the icon show its height; the paragraph's second line stands where it would without the icon %>
+      <div class="wiki gk-icons-fit-preview">
+        <h1>AM <span data-gk-icons-fit-slot></span> Zz</h1>
+        <h2>AM <span data-gk-icons-fit-slot></span> Zz</h2>
+        <p>AM <span data-gk-icons-fit-slot></span> Zz, <%= l(:text_gk_icons_fit_line) %><br><%= l(:text_gk_icons_fit_next_line) %></p>
+      </div>
+      <%# Save and Cancel side by side, the reason field under them, never between them %>
+      <p class="buttons">
+        <%= submit_tag l(:button_save), name: nil %>
+        <%= link_to l(:button_cancel), '#', onclick: 'hideModal(this); return false;' %>
+      </p>
+      <p class="gk-icons-reason-under"><%= reason_field.call('icons.text_fit', 24) %></p>
+    <% end %>
+  </div>
+  <% end %>
+
+  <%# recipes for common packs: where each is downloaded, which folder has the icons, and the pack.yml to put beside
+      them (README, Adding an icon pack) %>
+  <% recipes = GkIcons::Recipes.all %>
+  <% if recipes.any? %>
+  <h3><%= l(:label_gk_icons_recipes) %></h3>
+  <p class="info"><%= l(:text_gk_icons_recipes, roots: content_tag('code', 'icon_packs')).html_safe %></p>
+  <div class="autoscroll">
+  <table class="list gk-icons-recipes">
+    <thead><tr><th><%= l(:field_name) %></th><th><%= l(:label_gk_icons_recipe_download) %></th><th><%= l(:label_gk_icons_recipe_verified) %></th>
+      <th><%= l(:label_gk_icons_recipe_packs) %></th></tr></thead>
+    <tbody>
+    <% recipes.each do |key, r| %>
+      <tr class="<%= cycle('odd', 'even') %>">
+        <td class="name"><%= link_to r['name'], r['homepage'], class: 'external', rel: 'noopener', target: '_blank' %></td>
+        <td class="text download"><%= link_to r.dig('download', 'file'), r.dig('download', 'page'), class: 'external', rel: 'noopener', target: '_blank' %></td>
+        <td class="version"><%= r['verified'] %></td>
+        <td class="text packs">
+          <% r['packs'].each do |p| %>
+            <details class="gk-icons-recipe-pack"><summary><code><%= p['folder'] %></code> &larr; <code><%= p['from'] %></code><% %w[match exclude strip names_from exclude_names_from].select { |k| p[k] }.each do |k| %>, <%= l("label_gk_icons_recipe_#{k}") %> <code><%= p[k] %></code><% end %></summary>
+              <pre><%= GkIcons::Recipes.pack_yml(r, p) %></pre>
+            </details>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+    </tbody>
+  </table>
+  </div>
+  <% end %>
+
+<% elsif @tab == 'groups' %>
+  <%# the Groups tab: the instance's own groups across the packs %>
+  <% new_box = capture do %>
+    <%= form_tag gk_icons_groups_path, method: :post, class: 'gk-icons-inline-form' do %>
+      <%= hidden_field_tag 'form', '1', id: nil %>
+      <label><%= l(:text_gk_icons_js_group_name) %> <%= text_field_tag 'name', '', size: 30, required: true, id: 'gk-icons-new-group' %></label>
+      <%= submit_tag l(:button_gk_icons_new_group), name: nil %>
+    <% end %>
+  <% end %>
+  <%= respond_to?(:gk_gui_stuff_choices_box) ? gk_gui_stuff_choices_box('icons.group_new', l(:label_gk_icons_new_group), open: @groups.blank?) { new_box } : content_tag(:fieldset, content_tag(:legend, l(:label_gk_icons_new_group)) + new_box, class: 'box') %>
+  <% if @groups.blank? %>
+    <p class="nodata"><%= l(:text_gk_icons_js_no_groups) %></p>
+  <% else %>
+  <table class="list gk-icons-group-list">
+    <thead><tr><th><%= l(:text_gk_icons_js_group_name) %></th><th><%= l(:field_status) %></th><th><%= l(:label_gk_icons_members) %></th><th></th></tr></thead>
+    <tbody>
+    <% @groups.each do |g| %>
+      <% fid = "gk-icons-group-form-#{g[:key]}" %>
+      <tr id="gk-icons-group-<%= g[:key] %>" class="<%= cycle('odd', 'even') %>">
+        <%# the name and the state belong to the form in the last cell (the form attribute), so each stands in its column %>
+        <td class="name"><%= text_field_tag 'name', g[:name], size: 24, form: fid, 'aria-label': l(:text_gk_icons_js_group_name), id: nil %></td>
+        <td class="status">
+          <%= select_tag 'chosen', options_for_select(%w[active disabled].map { |c| [l("text_gk_icons_js_choose_#{c}"), c] }, g[:state] == 'disabled' ? 'disabled' : 'active'),
+                         form: fid, 'aria-label': l(:field_status), title: g[:reason].presence, id: nil %>
+        </td>
+        <td class="members">
+          <details class="gk-icons-members">
+            <summary><%= l(:label_gk_icons_members) %> (<%= g[:refs].size %>)</summary>
+            <% if g[:refs].blank? %>
+              <p class="nodata"><%= l(:text_gk_icons_no_members) %></p>
+            <% else %>
+              <table class="list">
+                <tbody>
+                <% g[:refs].each do |ref| %>
+                  <tr class="<%= cycle('odd', 'even', name: "members-#{g[:key]}") %>">
+                    <td class="icon"><%= gk_icon(ref, nil, size: 18) %></td>
+                    <td class="name"><code><%= ref %></code></td>
+                    <td class="buttons"><%= delete_link(gk_icons_group_members_path(key: g[:key], ref: ref, member: '0', form: '1'), { method: :post, data: {} }, l(:button_gk_icons_take_out)) %></td>
+                  </tr>
+                <% end %>
+                </tbody>
+              </table>
+            <% end %>
+            <p class="info"><%= l(:text_gk_icons_members_from_icons) %></p>
+          </details>
+        </td>
+        <td class="buttons">
+          <%= form_tag gk_icons_group_path(key: g[:key]), method: :post, id: fid, class: 'gk-icons-inline-form' do %>
+            <%= hidden_field_tag 'form', '1', id: nil %>
+            <%= submit_tag l(:button_save), name: nil %>
+            <%= reason_field.call('icons.group_state', 20) %>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+    </tbody>
+  </table>
+  <% end %>
+
+<% else %>
+  <%# the Icons tab (everyone: the library and the panel; an administrator: the states and the box for the checked icons) %>
+  <p><%= l(admin ? :text_gk_icons_library_admin : :text_gk_icons_library) %></p>
+  <%# core's per page choices and the library's own larger ones (core's setting is not changed) %>
+  <div data-gk-icons-library data-gk-icons-per-page="<%= (Setting.per_page_options_array | [250, 500]).sort.join(',') %>"<% if admin %> data-gk-icons-admin="1" data-gk-icons-choose-url="<%= gk_icons_choose_path %>" data-gk-icons-choose-many-url="<%= gk_icons_choose_many_path %>" data-gk-icons-groups-url="<%= gk_icons_groups_path %>" data-gk-icons-packs-url="<%= gk_icons_library_path(tab: 'packs') %>"<% end %>>
+    <% if admin %>
+    <div class="gk-icons-admin">
+      <% sel_box = capture do %>
+        <em class="info"><%= l(:text_gk_icons_selection_info) %></em>
+        <p class="gk-icons-selection">
+          <strong data-gk-icons="selcount"></strong>
+          <%= link_to l(:button_gk_icons_select_shown), '#', data: { gk_icons: 'sel-all' } %> |
+          <%= link_to l(:button_gk_icons_select_none), '#', data: { gk_icons: 'sel-none' } %>
+        </p>
+        <%# the state for every checked icon: chosen in the select, saved by Save %>
+        <%= form_tag gk_icons_choose_many_path, method: :post, class: 'gk-icons-selection', data: { gk_icons: 'sel-state' } do %>
+          <label for="gk_icons_sel_chosen"><%= l(:text_gk_icons_js_state) %></label>
+          <%= select_tag 'chosen', options_for_select(%w[active disabled].map { |c| [l("text_gk_icons_js_choose_#{c}"), c] }),
+                         prompt: l(:text_gk_icons_choose_state), required: true, id: 'gk_icons_sel_chosen' %>
+          <%= submit_tag l(:button_save), name: nil %>
+          <%= reason_field.call('icons.choose', 30) %>
+        <% end %>
+        <%= form_tag gk_icons_library_path, method: :get, class: 'gk-icons-selection', data: { gk_icons: 'sel-group' } do %>
+          <%= select_tag 'gk_icons_sel_group', options_for_select(@groups.map { |g| [g[:name], g[:key]] }), prompt: l(:text_gk_icons_choose_group),
+                         'aria-label': l(:text_gk_icons_js_group), data: { gk_icons: 'selgroup' } %>
+          <%= button_tag l(:button_gk_icons_put_in), type: 'submit', name: 'member', value: '1' %>
+          <%= button_tag l(:button_gk_icons_take_out), type: 'submit', name: 'member', value: '0' %>
+          <% if @groups.blank? %><em class="info"><%= link_to l(:text_gk_icons_make_group_first), gk_icons_library_path(tab: 'groups') %></em><% end %>
+        <% end %>
+      <% end %>
+      <div class="gk-icons-sel-box">
+        <%= respond_to?(:gk_gui_stuff_choices_box) ? gk_gui_stuff_choices_box('icons.selection', l(:label_gk_icons_selection)) { sel_box } : content_tag(:fieldset, content_tag(:legend, l(:label_gk_icons_selection)) + sel_box, class: 'box') %>
+      </div>
+      <%= form_tag gk_icons_refresh_path, method: :post, class: 'gk-icons-refresh', data: { gk_icons: 'refresh' } do %>
+        <span data-gk-icons="said" role="status" class="gk-icons-count"></span>
+        <%= submit_tag l(:button_gk_icons_refresh), name: nil, title: GkIcons::Store.ready? ? l(:text_gk_icons_store_ready) : l(:text_gk_icons_store_empty) %>
+      <% end %>
+    </div>
+    <% end %>
+    <div class="gk-icons-tools">
+      <input type="search" data-gk-icons="search" placeholder="<%= l(:text_gk_icons_js_search) %>" aria-label="<%= l(:text_gk_icons_js_search) %>">
+    </div>
+    <div class="gk-icons-groups" data-gk-icons="groups"></div>
+    <% if admin %><div class="gk-icons-groups" data-gk-icons="states"></div><% end %>
+    <div class="gk-icons-main" data-gk-icons="main">
+      <div class="box gk-icons-browse">
+        <div class="gk-icons-browse-head">
+          <h3><%= l(:label_gk_icons_tab_icons) %> <span data-gk-icons="count"></span></h3>
+          <span class="gk-icons-view">
+            <%# how a click copies the icon: small, beside the view's other choices, so it fits a phone %>
+            <label title="<%= l(:text_gk_icons_copy_as) %>"><%= l(:label_gk_icons_copy_as) %>
+              <%= select_tag 'gk_icons_form', options_for_select([[l(:label_gk_icons_copy_text), 'text'], [l(:label_gk_icons_copy_name), 'name']], 'text'), data: { gk_icons: 'form' } %></label>
+            <label><%= l(:label_sort) %>
+              <%= select_tag 'gk_icons_sort', options_for_select(%w[name_asc name_desc group].map { |k| [l(:"label_gk_icons_sort_#{k}"), k] }, 'name_asc'), data: { gk_icons: 'sort' } %></label>
+            <label><%= l(:label_display_type) %>
+              <%= select_tag 'gk_icons_view', options_for_select([[l(:label_gk_icons_view_grid), 'grid'], [l(:label_display_type_list), 'list']], 'grid'), data: { gk_icons: 'view' } %></label>
+          </span>
+        </div>
+        <div class="gk-icons-grid" data-gk-icons="grid"></div>
+        <span class="pagination" data-gk-icons="pages"></span>
+      </div>
+      <div class="box gk-icons-panel" data-gk-icons="panel" hidden></div>
+    </div>
+    <%# the shared reason field for the panel's state form, taken from here by the script %>
+    <% if admin %><template data-gk-icons="reason"><%= reason_field.call('icons.choose', 24) %></template><% end %>
+  </div>
+<% end %>

@@ -1,0 +1,39 @@
+# Font Awesome Free: how to add it as icon packs. Text only; no icons ship with the plugin.
+# Steps: download the file from the page, unpack it, copy each pack's "from" folder into a pack root as the pack's
+# "folder", put the pack's pack.yml (below) beside the icons, and press Reload from disk in the icon library.
+# <version> stands for the version downloaded; "verified" is the one the recipe was tried with.
+name: Font Awesome Free
+homepage: https://fontawesome.com
+download:
+  page: https://github.com/FortAwesome/Font-Awesome/releases
+  file: fontawesome-free-<version>-web.zip
+verified: "7.3.1"
+license_file: fontawesome-free-<version>-web/LICENSE.txt
+packs:
+  - folder: fa
+    from: fontawesome-free-<version>-web/svgs/solid
+    pack:
+      key: fa
+      name: Font Awesome Free Solid
+      license: CC-BY-4.0
+      attribution: "Font Awesome Free by Fonticons, Inc."
+      homepage: https://fontawesome.com
+      mono: true
+  - folder: far
+    from: fontawesome-free-<version>-web/svgs/regular
+    pack:
+      key: far
+      name: Font Awesome Free Regular
+      license: CC-BY-4.0
+      attribution: "Font Awesome Free by Fonticons, Inc."
+      homepage: https://fontawesome.com
+      mono: true
+  - folder: fab
+    from: fontawesome-free-<version>-web/svgs/brands
+    pack:
+      key: fab
+      name: Font Awesome Free Brands
+      license: CC-BY-4.0
+      attribution: "Font Awesome Free by Fonticons, Inc. Brand icons are trademarks of their owners."
+      homepage: https://fontawesome.com
+      mono: true

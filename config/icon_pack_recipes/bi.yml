@@ -1,0 +1,22 @@
+# Bootstrap Icons: how to add it as an icon pack. Text only; no icons ship with the plugin.
+# Steps: download the file from the page, unpack it, copy the "from" folder into a pack root as the pack's "folder"
+# (the svg files only), put the pack.yml (below) beside the icons, and press Reload from disk in the icon library.
+# The filled icons are icons of their own, with -fill in the name (house and house-fill). The zip has no licence
+# file; the licence is in the project (MIT).
+name: Bootstrap Icons
+homepage: https://icons.getbootstrap.com
+download:
+  page: https://github.com/twbs/icons/releases
+  file: bootstrap-icons-<version>.zip
+verified: "1.13.2"
+packs:
+  - folder: bi
+    from: bootstrap-icons-<version>
+    match: "*.svg"
+    pack:
+      key: bi
+      name: Bootstrap Icons
+      license: MIT
+      attribution: "Bootstrap Icons by The Bootstrap Authors"
+      homepage: https://icons.getbootstrap.com
+      mono: true

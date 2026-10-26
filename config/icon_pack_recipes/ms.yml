@@ -1,0 +1,21 @@
+# Material Symbols: how to add it as icon packs, one per style. Text only; no icons ship with the plugin.
+# Steps: download the file from the page, unpack it, copy each pack's "from" folder into a pack root as the pack's
+# "folder", put the pack's pack.yml (below) beside the icons, and press Reload from disk in the icon library.
+# Weight 400; the filled icons are icons of their own, with -fill in the name (home and home-fill).
+name: Material Symbols
+homepage: https://fonts.google.com/icons
+download:
+  page: https://www.npmjs.com/package/@material-symbols/svg-400
+  file: svg-400-<version>.tgz
+verified: "0.48.1"
+license_file: package/LICENSE
+packs:
+  - folder: ms
+    from: package/outlined
+    pack: {key: ms, name: Material Symbols Outlined, license: Apache-2.0, attribution: "Material Symbols by Google", homepage: "https://fonts.google.com/icons", mono: true}
+  - folder: msr
+    from: package/rounded
+    pack: {key: msr, name: Material Symbols Rounded, license: Apache-2.0, attribution: "Material Symbols by Google", homepage: "https://fonts.google.com/icons", mono: true}
+  - folder: mss
+    from: package/sharp
+    pack: {key: mss, name: Material Symbols Sharp, license: Apache-2.0, attribution: "Material Symbols by Google", homepage: "https://fonts.google.com/icons", mono: true}

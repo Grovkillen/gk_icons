@@ -1,0 +1,90 @@
+<%# gk_icons: where a disabled or missing icon is already written, the packs, About the plugin and the changelog %>
+<% plugin = Redmine::Plugin.find(:gk_icons) %>
+<% changelog = ["CHANGELOG.#{current_language}.md", 'CHANGELOG.md'].map { |f| GkIcons::Text.join_path(plugin.directory, f) }.find { |f| File.exist?(f) } %>
+<% s = plugin.settings[:default].to_h.transform_keys(&:to_s).merge((settings || {}).to_h.transform_keys(&:to_s)) %>
+<fieldset class="box"><legend><%= l(:label_gk_icons_about) %></legend>
+  <div><strong><%= plugin.name %></strong> <%= plugin.version %></div>
+  <div><%= l(:text_gk_icons_description) %></div>
+</fieldset>
+<%# The explanations stand under the choices, the full width of the box (a p in the settings form is indented as a
+    label's field); the choice for disabled icons last, right above the text that speaks of it first %>
+<fieldset class="box tabular"><legend><%= l(:label_gk_icons_where_used) %></legend>
+  <% %w[missing disabled].each do |st| %>
+  <p><label for="settings_<%= st %>_where_used"><%= l(:"label_gk_icons_where_used_#{st}") %></label>
+    <%= select_tag "settings[#{st}_where_used]",
+                   options_for_select(%w[shown hidden].map { |v| [l(:"label_gk_icons_where_used_#{v}"), v] }, s["#{st}_where_used"]),
+                   id: "settings_#{st}_where_used" %></p>
+  <% end %>
+  <em class="info"><%= l(:text_gk_icons_where_used) %></em>
+</fieldset>
+<fieldset class="box"><legend><%= l(:label_gk_icons_packs) %> (<%= GkIcons::Packs.all.size %>)</legend>
+  <em class="info"><%= l(:text_gk_icons_packs) %></em>
+  <table class="list">
+    <thead><tr><th><%= l(:label_gk_icons_pack_root) %></th><th><%= l(:field_status) %></th></tr></thead>
+    <tbody>
+    <% GkIcons::Packs.roots.each do |r| %>
+      <tr><td class="name"><code><%= GkIcons::Text.display_path(r) %></code></td><% found = File.directory?(r) ? 'found' : 'missing' %><td class="status"><%= content_tag('span', l(:"label_gk_icons_root_#{found}"), class: "gk-icons-root-state gk-icons-root-state-#{found}") %></td></tr>
+    <% end %>
+    </tbody>
+  </table>
+  <%# the packs' height, place and side space in text are set on the Packs tab of the icon library; this form carries them unchanged %>
+  <% (settings['pack_text'] || {}).each do |key, fit| %>
+    <% fit.to_h.slice('scale', 'shift', 'gap').each do |k, v| %><%= hidden_field_tag "settings[pack_text][#{key}][#{k}]", v, id: nil %><% end %>
+  <% end %>
+  <% if GkIcons::Packs.all.present? %>
+  <%# core's scrolling box: in a narrow window the table scrolls instead of squeezing the samples to one icon a line %>
+  <div class="autoscroll">
+  <table class="list gk-icons-packs-settings">
+    <thead><tr><th><%= l(:label_gk_icons_pack_key) %></th><th><%= l(:field_name) %></th><th><%= l(:label_gk_icons_pack_count) %></th><th><%= l(:label_gk_icons_pack_variants) %></th><th><%= l(:label_gk_icons_pack_drawn) %></th><th><%= l(:label_gk_icons_pack_license) %></th><th><%= l(:label_gk_icons_pack_sample) %></th></tr></thead>
+    <tbody>
+    <% GkIcons::Packs.all.values.sort_by(&:key).each do |pk| %>
+      <tr>
+        <td class="key"><code><%= pk.key %>/</code></td>
+        <td class="name"><%= pk.name %> <%= pk.meta['version'] %><% if pk.meta['attribution'].present? %><br><em class="info"><%= pk.meta['attribution'] %></em><% end %></td>
+        <td class="count"><%= pk.icons.size %></td>
+        <%# a variant is a subfolder or a listed ending; the files without one are "no variant", and the pack's default
+            (pack.yml default_variant, plain when not set) is what a code without a variant draws %>
+        <td class="variants" title="<%= l(:text_gk_icons_variants) %>"><%= pk.variants.map { |v| (v.blank? ? l(:label_gk_icons_variant_plain) : v) + (pk.variants.size > 1 && v.to_s == pk.default_variant.to_s ? " (#{l(:label_gk_icons_variant_default)})" : '') }.join(', ') %></td>
+        <% drawn = pk.mono ? 'mono' : 'colour' %>
+        <td class="drawn"><%= content_tag('span', l(:"label_gk_icons_#{drawn}"), class: "gk-icons-drawn gk-icons-drawn-#{drawn}") %></td>
+        <td class="text license"><%= pk.meta['license'].presence || '-' %></td>
+        <%# a pack found on disk but not yet read into the store (a large one takes a while) says so instead of an empty
+            sample %>
+        <% if GkIcons::Store.ready? && GkIcons::Store.index.key?(pk.key) %>
+        <td class="sample gk-icons-sample"><% pk.icons.keys.first(10).each do |n| %><span title="<%= pk.key %>/<%= n %>"><%= gk_icon("#{pk.key}/#{n}", size: 20) %></span> <% end %></td>
+        <% else %>
+        <td class="sample gk-icons-sample"><em class="info"><%= l(:text_gk_icons_sample_pending) %></em></td>
+        <% end %>
+      </tr>
+    <% end %>
+    </tbody>
+  </table>
+  </div>
+  <% end %>
+</fieldset>
+<fieldset class="box"><legend><%= l(:label_gk_icons_own) %> (<%= GkIcons.own.size %>)</legend>
+  <em class="info"><%= l(:text_gk_icons_own) %></em>
+  <div class="gk-icons-grid">
+    <% GkIcons.own.keys.sort.each do |n| %><span class="gk-icons-cell" title="<%= n %>"><%= gk_icon(n, n) %></span><% end %>
+  </div>
+</fieldset>
+<%# a plain box like the others: the settings page folds its sections itself, so the box has no fold of its own %>
+<fieldset class="box"><legend><%= l(:label_gk_icons_core) %> (<%= GkIcons.core.size %>)</legend>
+  <div class="gk-icons-grid">
+    <% GkIcons.core.keys.sort.each do |n| %><span class="gk-icons-cell" title="<%= n %>"><%= gk_icon(n, n) %></span><% end %>
+  </div>
+</fieldset>
+<style>
+  /* read in columns: top to bottom, then the next column */
+  .gk-icons-grid { columns: 190px; column-gap: 12px; }
+  .gk-icons-cell { display: flex; align-items: center; gap: 6px; margin-block-end: 4px; break-inside: avoid; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gk-icons-packs-settings td.gk-icons-sample { white-space: nowrap; }
+</style>
+<% if changelog %>
+<fieldset class="box"><legend><%= l(:label_gk_icons_changelog) %></legend>
+  <% unless current_language.to_s.start_with?('en') %><div class="gk-changelog-note"><em><%= l(:text_gk_icons_changelog_english) %></em></div><% end %>
+  <details class="gk-changelog"><summary><%= l(:button_show) %></summary>
+  <div class="wiki"><%= Redmine::WikiFormatting.to_html('common_mark', File.read(changelog, encoding: 'UTF-8').sub(/\A.*?(?=^## )/m, '')).html_safe %></div>
+  </details>
+</fieldset>
+<% end %>

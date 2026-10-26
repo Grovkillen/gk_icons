@@ -1,0 +1,47 @@
+# Line Awesome (Icons8): how to add it as icon packs. Text only; no icons ship with the plugin.
+# Steps: download the file from the page, unpack it, copy each pack's "from" folder into a pack root as the pack's
+# "folder" (only the files that "match", without the ones in "exclude", and with "strip" taken off the file names),
+# put the pack's pack.yml (below) beside the icons, and press Reload from disk in the icon library.
+# One folder holds all icons: the solid ones end in -solid. The brand icons are told apart by the names in the brand
+# font ("names_from": the glyph-name of each glyph in that file); the brand names without an svg of the same name stay
+# in la.
+name: Line Awesome
+homepage: https://icons8.com/line-awesome
+download:
+  page: https://www.npmjs.com/package/line-awesome
+  file: line-awesome-<version>.tgz
+verified: "2.0.1"
+license_file: package/LICENSE.md
+packs:
+  - folder: la
+    from: package/svg
+    exclude: "*-solid.svg"
+    exclude_names_from: package/dist/line-awesome/fonts/la-brands-400.svg
+    pack:
+      key: la
+      name: Line Awesome
+      license: MIT
+      attribution: "Line Awesome by Icons8 (MIT, or the Good Boy License)"
+      homepage: https://icons8.com/line-awesome
+      mono: true
+  - folder: las
+    from: package/svg
+    match: "*-solid.svg"
+    strip: "-solid"
+    pack:
+      key: las
+      name: Line Awesome Solid
+      license: MIT
+      attribution: "Line Awesome by Icons8 (MIT, or the Good Boy License)"
+      homepage: https://icons8.com/line-awesome
+      mono: true
+  - folder: lab
+    from: package/svg
+    names_from: package/dist/line-awesome/fonts/la-brands-400.svg
+    pack:
+      key: lab
+      name: Line Awesome Brands
+      license: MIT
+      attribution: "Line Awesome by Icons8 (MIT, or the Good Boy License). Brand icons are trademarks of their owners."
+      homepage: https://icons8.com/line-awesome
+      mono: true

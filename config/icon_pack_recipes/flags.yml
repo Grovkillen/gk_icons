@@ -1,0 +1,18 @@
+# flag-icons: how to add it as icon packs, one per shape. Text only; no icons ship with the plugin.
+# Steps: download the file from the page, unpack it, copy each pack's "from" folder into a pack root as the pack's
+# "folder", put the pack's pack.yml (below) beside the icons, and press Reload from disk in the icon library.
+# The flags keep their colours (mono: false). Names are the country codes in lower case (se, no, eu).
+name: flag-icons
+homepage: https://flagicons.lipis.dev
+download:
+  page: https://www.npmjs.com/package/flag-icons
+  file: flag-icons-<version>.tgz
+verified: "7.6.0"
+license_file: package/LICENSE
+packs:
+  - folder: flags
+    from: package/flags/4x3
+    pack: {key: flags, name: "Flags 4:3", license: MIT, attribution: "flag-icons by Panayiotis Lipiridis", homepage: "https://flagicons.lipis.dev", mono: false}
+  - folder: flags1x1
+    from: package/flags/1x1
+    pack: {key: flags1x1, name: "Flags 1:1", license: MIT, attribution: "flag-icons by Panayiotis Lipiridis", homepage: "https://flagicons.lipis.dev", mono: false}

@@ -1,0 +1,124 @@
+/* gk_icons: the library page, the picker and the editor's button. Core's own variables, so all follow a theme; logical
+   properties. Buttons, forms, tables, badges and page numbers are core's own; only what core lacks is styled here. */
+.gk-icons-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-block-end: 10px; }
+.gk-icons-tools input[type="search"] { inline-size: min(28em, 100%); }
+.gk-icons-groups { display: flex; flex-wrap: wrap; gap: 6px; margin-block-end: 10px; }
+.gk-icons-chip { border: 1px solid var(--oc-gray-4, #ced4da); border-radius: 12px; background: var(--oc-white, #ffffff); color: inherit; font: inherit; font-size: .9em;
+  padding-block: 1px; padding-inline: 10px; cursor: pointer; }
+.gk-icons-chip:hover, .gk-icons-chip:focus-visible { border-color: var(--oc-gray-6, #868e96); background-color: var(--oc-gray-2, #e9ecef); }
+.gk-icons-chip-on { background: var(--oc-blue-0, #e7f5ff); border-color: var(--oc-blue-7, #1c7ed6); font-weight: bold; }
+/* The library's grid is read row by row, left to right; as many columns as the width holds, so no room is left over */
+[data-gk-icons-library] .gk-icons-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+.gk-icons-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding-block: 8px 6px; padding-inline: 4px; border: 1px solid transparent; border-radius: 4px;
+  background: transparent; color: inherit; font: inherit; cursor: pointer; min-inline-size: 0; block-size: auto; }
+.gk-icons-item:hover, .gk-icons-item:focus-visible { border-color: var(--oc-gray-4, #ced4da); background: var(--oc-gray-0, #f8f9fa); }
+.gk-icons-item svg { stroke: currentColor; fill: none; stroke-width: 2; flex: none; }
+.gk-icons-item-name { font-size: .78em; color: var(--oc-gray-7, #495057); max-inline-size: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk-icons-said { position: fixed; inset-block-end: 28px; inset-inline: 0; margin-inline: auto; inline-size: max-content; max-inline-size: calc(100vw - 16px); background: rgba(30, 32, 36, .78); color: #f2f2f2; padding-block: 5px;
+  padding-inline: 12px; border-radius: 999px; font-size: .88em; opacity: 0; pointer-events: none; transition: opacity .18s; z-index: 1000; white-space: nowrap; }
+.gk-icons-said-on { opacity: 1; }
+/* "Copied" at the icon or the field that was copied */
+.gk-icons-copied { position: absolute; inset-block-start: 2px; inset-inline-end: 2px; z-index: 2; padding-block: 0; padding-inline: 5px; border-radius: 3px; font-size: .75em;
+  background: var(--oc-green-9, #2b8a3e); color: var(--oc-white, #ffffff); pointer-events: none; }
+
+/* the picker: a button that shows the choice, and a small window with a search field, as the filter builder's */
+.gk-icons-pick { display: inline-flex; align-items: center; gap: 6px; inline-size: 100%; box-sizing: border-box; min-block-size: 26px; padding-block: 2px; padding-inline: 8px 6px;
+  border: 1px solid var(--oc-gray-4, #ced4da); border-radius: 3px; background: var(--oc-white, #ffffff); color: inherit; font: inherit; cursor: pointer; text-align: start; }
+.gk-icons-pick:hover, .gk-icons-pick:focus-visible, .gk-icons-pick[aria-expanded="true"] { border-color: var(--oc-blue-7, #1c7ed6); }
+.gk-icons-pick svg { stroke: currentColor; fill: none; stroke-width: 2; flex: none; }
+.gk-icons-pick-name { flex: 1; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk-icons-pick-none { flex: 1; color: var(--oc-gray-6, #868e96); font-style: italic; }
+.gk-icons-pick-caret { flex: none; inline-size: 0; block-size: 0; border-inline: 4px solid transparent; border-block-start: 5px solid currentColor; opacity: .6; }
+.gk-icons-pop { position: absolute; z-index: 1200; inline-size: min(34em, calc(100vw - 16px)); padding: 0.6em; border: 1px solid var(--oc-gray-4, #ced4da); border-radius: 4px;
+  background: var(--oc-white, #ffffff); color: var(--oc-gray-9, #212529); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15); }
+.gk-icons-pop input[type="search"] { inline-size: 100%; box-sizing: border-box; }
+.gk-icons-pop-groups { display: block; inline-size: 100%; margin-block: 6px; }
+/* never taller than the window: the grid gives up its height first */
+.gk-icons-pop { max-block-size: calc(100vh - 16px); display: flex; flex-direction: column; }
+.gk-icons-pop .gk-icons-pop-grid { min-block-size: 4em; flex: 1 1 auto; }
+.gk-icons-pop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 2px; max-block-size: 18em; overflow: auto; }
+.gk-icons-pop-grid .gk-icons-item { cursor: pointer; padding-block: 6px 4px; }
+.gk-icons-hit { background: var(--oc-blue-1, #d0ebff) !important; }
+.gk-icons-chosen { border-color: var(--oc-blue-7, #1c7ed6) !important; }
+.gk-icons-pop-empty { grid-column: 1 / -1; color: var(--oc-gray-6, #868e96); font-style: italic; padding: 6px; }
+.gk-icons-pop-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-block-start: 6px; }
+.gk-icons-pop-none { border: 0; background: transparent; color: var(--oc-blue-9, #1864ab); cursor: pointer; font: inherit; padding: 0; }
+.gk-icons-pop-info { color: var(--oc-gray-6, #868e96); font-size: .85em; }
+/* the button Insert icon in the editor's toolbar: core's toolbar button, with the icon at the size of core's */
+.jstElements .jstb_gk_icons_insert { background-size: 16px 16px; }
+
+/* The library's states for an administrator */
+.gk-icons-admin { display: flex; align-items: flex-start; gap: 12px; margin-block-end: 10px; }
+.gk-icons-refresh { display: flex; align-items: center; gap: 8px; margin-inline-start: auto; margin-block: 0; flex: none; }
+.gk-icons-item-open { border-color: var(--oc-blue-7, #1c7ed6) !important; background: var(--oc-blue-0, #e7f5ff) !important; box-shadow: 0 0 0 2px var(--oc-blue-3, #74c0fc); }
+.gk-icons-item-state { font-size: .72em; color: var(--oc-gray-7, #495057); }
+.gk-icons-state-disabled { opacity: .55; }
+.gk-icons-state-missing { opacity: .55; border-style: dashed; border-color: var(--oc-red-5, #ff6b6b); }
+.gk-icons-state-missing .gk-icons-item-state { color: var(--oc-red-8, #e03131); }
+/* The instance's own groups among the chips */
+.gk-icons-chip-set { border-style: dashed; }
+.gk-icons-panel-groups label { margin-inline-end: 8px; }
+/* An icon with its checkbox; the checkboxes show only while the box Checked icons is open */
+.gk-icons-cell { position: relative; display: flex; }
+.gk-icons-cell > .gk-icons-item { flex: 1; min-inline-size: 0; }
+.gk-icons-check-holder { position: absolute; inset-block-start: 2px; inset-inline-start: 4px; z-index: 1; }
+[data-gk-icons-library]:not(.gk-icons-marking) .gk-icons-check-holder,
+[data-gk-icons-library]:not(.gk-icons-marking) .gk-icons-table .checkbox { display: none; }
+.gk-icons-item-marked { border-color: var(--oc-blue-7, #1c7ed6) !important; background: var(--oc-blue-0, #e7f5ff) !important; }
+.gk-icons-chip-off { opacity: .55; cursor: not-allowed; border-style: dotted; }
+.gk-icons-sel-box { flex: 1; min-inline-size: 0; }
+.gk-icons-sel-box fieldset { margin: 0; }
+.gk-icons-selection { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-block: 4px; }
+.gk-icons-inline-form { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
+tr.gk-icons-pack-off td.name { color: var(--oc-gray-6, #868e96); }
+/* A badge in a row or on a text line stands on the line, as core sets it in a version's header */
+table.gk-icons-packs td.status .badge, .gk-icons-table td.status .badge, .gk-icons-panel p > .badge { inset-block-end: 0; vertical-align: middle; }
+/* A group's members: core's list inside the row. The columns keep their widths when a list opens, and the row's other
+   cells stay at its top edge beside the open list */
+table.gk-icons-group-list { table-layout: fixed; }
+table.gk-icons-group-list > thead > tr > th:nth-child(1) { inline-size: 22%; }
+table.gk-icons-group-list > thead > tr > th:nth-child(2) { inline-size: 12%; }
+table.gk-icons-group-list > thead > tr > th:nth-child(3) { inline-size: 30%; }
+table.gk-icons-group-list > tbody > tr > td { vertical-align: top; }
+table.gk-icons-group-list td.name input { inline-size: 100%; max-inline-size: 100%; }
+.gk-icons-members table.list { margin-block: 4px; table-layout: auto; }
+.gk-icons-members table.list td { vertical-align: middle; }
+.gk-icons-members td.icon { inline-size: 24px; }
+
+/* The icons and the panel of the icon clicked, side by side where there is room */
+.gk-icons-main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: start; }
+.gk-icons-main.gk-icons-with-panel { grid-template-columns: minmax(0, 1fr) minmax(16em, 24em); }
+@media (max-width: 899px) { .gk-icons-main.gk-icons-with-panel { grid-template-columns: minmax(0, 1fr); } }
+.gk-icons-main > .box { margin: 0; min-inline-size: 0; }
+.gk-icons-browse-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; margin-block-end: 8px; }
+.gk-icons-browse-head h3 { margin: 0; }
+.gk-icons-view { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.gk-icons-browse .pagination { margin-block-start: 10px; }
+.gk-icons-table td.icon { inline-size: 32px; text-align: center; }
+.gk-icons-table td.name, .gk-icons-table td.group { text-align: start; }
+.gk-icons-panel-head { display: flex; align-items: center; gap: 8px; }
+.gk-icons-panel-head h3 { margin: 0; flex: 1; min-inline-size: 0; overflow-wrap: anywhere; }
+.gk-icons-panel-head .badge { inset-block-end: 0; }
+/* the large picture on a chequered ground, so that a white or transparent part shows */
+.gk-icons-preview { display: flex; align-items: center; justify-content: center; block-size: 160px; margin-block: 10px; border: 1px solid var(--oc-gray-3, #dee2e6); border-radius: 3px;
+  background-color: var(--oc-white, #ffffff);
+  background-image: conic-gradient(var(--oc-gray-2, #e9ecef) 25%, transparent 0 50%, var(--oc-gray-2, #e9ecef) 0 75%, transparent 0); background-size: 16px 16px; }
+.gk-icons-sizes { display: flex; gap: 8px; margin-block-end: 6px; }
+.gk-icons-sizes figure { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; margin: 0; padding-block: 6px 2px;
+  border: 1px solid var(--oc-gray-3, #dee2e6); border-radius: 3px; }
+.gk-icons-sizes figcaption, .gk-icons-ratio { font-size: .85em; color: var(--oc-gray-7, #495057); }
+.gk-icons-field { position: relative; margin-block: 6px; }
+.gk-icons-field label { display: block; font-weight: bold; }
+.gk-icons-field input { inline-size: calc(100% - 30px); }
+.gk-icons-similar { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 4px; }
+.gk-icons-state-form p { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+/* the Packs tab: a pack's height, place and side space in text, with a line of text to see it by. The values beside the
+   button show only where the table has room: in a narrow box they go and the button stays */
+.gk-icons-pack-text { white-space: nowrap; }
+.gk-icons-fit-now { margin-inline-end: 0.5em; color: var(--oc-gray-7, #495057); }
+.gk-icons-packs-box { container: gk-icons-packs / inline-size; }
+@container gk-icons-packs (max-width: 68em) { .gk-icons-fit-now { display: none; } }
+.gk-icons-fit-preview { padding-block: 0.3em; border-block-start: 1px solid var(--oc-gray-3, #dee2e6); }
+.gk-icons-fit-preview h1, .gk-icons-fit-preview h2, .gk-icons-fit-preview p { margin-block: 0.3em; }
+/* the shared reason field on its own line under Save and Cancel, never between them */
+.gk-icons-reason-under { margin-block: 0.3em 0; }

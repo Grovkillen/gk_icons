@@ -1,0 +1,66 @@
+# config/registrations.yml: vad pluginet lägger i de gemensamma lagren
+# (miljömanifestet 8.1). Tomma listor betyder ingenting där; nycklarna
+# får inte saknas. En kontrollerad utskrift av det koden registrerar:
+# init.rb och extensions/gk_icons/ är källan, och varje rad pekar
+# på något som finns (T-REG). Det som bara är planerat står inte här
+# förrän det är byggt.
+permissions: []
+menu: []
+drawer: []
+notices: []
+banners: []
+waves: []
+surfaces: []
+color_roles: []
+records:
+  targets:              # GkIcons::History.register_records! (history.rb), synliga för administratörer
+    - {key: gk_icons_pack, model: GkIconsPack}               # ett ikonpaket
+    - {key: gk_icons_group, model: GkIconsGroup}             # en ikongrupp
+  note_kinds: []
+  event_kinds:
+    - {key: icons_state_chosen, target: gk_icons_pack, label: label_gk_icons_event_icons_state_chosen}       # en ikons eller ett pakets läge, med skäl
+    - {key: icons_group_made, target: gk_icons_group, label: label_gk_icons_event_icons_group_made}
+    - {key: icons_group_changed, target: gk_icons_group, label: label_gk_icons_event_icons_group_changed}    # namn, beskrivning, läge (med skäl)
+    - {key: icons_member_added, target: gk_icons_group, label: label_gk_icons_event_icons_member_added}
+    - {key: icons_member_removed, target: gk_icons_group, label: label_gk_icons_event_icons_member_removed}
+    - {key: icons_read, target: gk_icons_pack, label: label_gk_icons_event_icons_read}                       # en inläsning från disk som ändrade något
+    - {key: icons_text_fit, target: gk_icons_pack, label: label_gk_icons_event_icons_text_fit}               # ett pakets höjd, läge och luft i text, med skäl
+  link_kinds: []
+strings:
+  terms: []
+text_levels: []
+templates:
+  kinds: []
+scenario_steps: [icons]   # GkScenarios::Steps (scenarios.rb): paketen ur scenariots mapp, lägen, grupper och inställningar
+jobs: []
+corners: []
+timeline: []
+queries: []
+folds: []
+copies: []
+view_states: []
+decorations: []
+content_transforms: []
+toolbar: []            # gui_stuff har inget toolbar-lager än; knappen Infoga ikon (features: icons.editor_insert) läggs direkt i cores jsToolBar
+forms: []
+revisioned: []
+locked: []
+ribbons: []
+triggers: []
+trigger_actions: []
+gis_layers: []
+gis_columns: []
+disk_areas:             # rötterna där paket söks (GkIcons::Packs.roots i packs.rb); varje rot som finns används
+  - {key: packs_machine, path: "<redmine>/../../../icon_packs", kind: content}                    # delas av maskinens instanser
+  - {key: packs_instance, path: "<attachments>/icon_packs", kind: content}                        # bara den här instansen
+  - {key: packs_env, env: GK_ICON_PACKS, kind: content}                                           # mapparna i miljövariabeln, skilda som i PATH
+features:               # gui_stuff Features (init.rb), av från början
+  - {key: icons.in_text, default: false, label: label_gk_feature_icons_in_text, help: text_gk_feature_icons_in_text}
+  - {key: icons.library_for_users, default: false, label: label_gk_feature_icons_library_for_users, help: text_gk_feature_icons_library_for_users}
+  - {key: icons.editor_insert, default: false, label: label_gk_feature_icons_editor_insert, help: text_gk_feature_icons_editor_insert}   # knappen Infoga ikon i cores jsToolBar (gk_icons.js)
+reasons:                # records Reasons (init.rb): platserna där en administratör skriver ett skäl
+  - {key: icons.choose, default: required, admin: true, label: label_gk_reason_icons_choose}
+  - {key: icons.group_state, default: required, admin: true, label: label_gk_reason_icons_group_state}
+  - {key: icons.text_fit, default: required, admin: true, label: label_gk_reason_icons_text_fit}
+appearances: {}
+access_items: []

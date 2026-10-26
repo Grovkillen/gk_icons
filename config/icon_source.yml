@@ -1,0 +1,57 @@
+# gk_icons: the plugin's own icons, in the same form as Redmine's config/icon_source.yml.
+# name: the name in our sprite (gk_icon(name)); svg: the source icon in Tabler Icons v3.43.0 (outline);
+# used_by: the plugin that asked for it first. An icon core has is never listed here: gk_icon draws core's.
+tabler_release: "v3.43.0"
+icons:
+  - { name: adjust-in-text, svg: adjustments-horizontal, used_by: icons }
+  - { name: alert-triangle, svg: alert-triangle, used_by: palette }
+  - { name: bell, svg: bell, used_by: gui_stuff }
+  - { name: bolt, svg: bolt, used_by: palette }
+  - { name: brand-slack, svg: brand-slack, used_by: people }
+  - { name: brand-teams, svg: brand-teams, used_by: people }
+  - { name: calendar-week, svg: calendar-week, used_by: gui_stuff }
+  - { name: clipboard-copy, svg: clipboard-copy, used_by: gui_stuff }
+  - { name: external-link, svg: external-link, used_by: gui_stuff }
+  - { name: eye, svg: eye, used_by: gui_stuff }
+  - { name: flag, svg: flag, used_by: palette }
+  - { name: language, svg: language, used_by: fields }
+  - { name: mail, svg: mail, used_by: gui_stuff }
+  - { name: map-pin, svg: map-pin, used_by: gis }
+  - { name: own-field, svg: diamond, used_by: gui_stuff }
+  - { name: palette, svg: palette, used_by: theme_engine }
+  - { name: pause, svg: player-pause, used_by: gui_stuff }
+  - { name: pin, svg: pin, used_by: gui_stuff }
+  - { name: play, svg: player-play, used_by: gui_stuff }
+  - { name: priority-critical, svg: flame, used_by: palette }
+  - { name: priority-high, svg: chevron-up, used_by: palette }
+  - { name: priority-immediate, svg: urgent, used_by: palette }
+  - { name: priority-low, svg: chevron-down, used_by: palette }
+  - { name: priority-lowest, svg: chevrons-down, used_by: palette }
+  - { name: priority-normal, svg: minus, used_by: palette }
+  - { name: priority-urgent, svg: chevrons-up, used_by: palette }
+  - { name: qrcode, svg: qrcode, used_by: gui_stuff }
+  - { name: robot, svg: robot, used_by: workflow_rules }
+  - { name: scheme-auto, svg: brightness-half, used_by: theme_engine }
+  - { name: scheme-dark, svg: moon, used_by: theme_engine }
+  - { name: scheme-light, svg: sun, used_by: theme_engine }
+  - { name: shield, svg: shield-half, used_by: people }
+  - { name: star, svg: star, used_by: palette }
+  - { name: status-active, svg: circle-dot, used_by: palette }
+  - { name: status-approved, svg: rosette-discount-check, used_by: palette }
+  - { name: status-done, svg: circle-check, used_by: palette }
+  - { name: status-draft, svg: circle-dashed, used_by: palette }
+  - { name: status-half, svg: circle-half-2, used_by: palette }
+  - { name: status-hold, svg: hand-stop, used_by: palette }
+  - { name: status-open, svg: circle, used_by: palette }
+  - { name: status-progress, svg: progress, used_by: palette }
+  - { name: status-rejected, svg: circle-x, used_by: palette }
+  - { name: swatch, svg: color-swatch, used_by: theme_engine }
+  - { name: target, svg: target, used_by: records }
+  - { name: theme, svg: brush, used_by: theme_engine }
+  - { name: tracker-bug, svg: bug, used_by: palette }
+  - { name: tracker-document, svg: file-description, used_by: palette }
+  - { name: tracker-help, svg: lifebuoy, used_by: palette }
+  - { name: tracker-repair, svg: tool, used_by: palette }
+  - { name: tracker-support, svg: headset, used_by: palette }
+  - { name: tracker-task, svg: checklist, used_by: palette }
+  - { name: truck, svg: truck, used_by: palette }
