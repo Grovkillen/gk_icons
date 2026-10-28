@@ -10,6 +10,8 @@ require_relative 'extensions/gk_icons/history' # The icons' history in records
 require_relative 'extensions/gk_icons/measure' # What an icon draws, measured when its pack is read
 require_relative 'extensions/gk_icons/store' # The packs in the database, states, sprites
 require_relative 'extensions/gk_icons/patches' # The helper in every view, icons in core's formatted text
+# The core patches (patches.rb), applied here and again on every reload
+GkIcons::Patches.apply!
 # Every change of the icons is an event in records (GkIcons::History): states chosen, groups made and changed,
 # members in and out, readings that changed something.
 
@@ -17,7 +19,7 @@ Redmine::Plugin.register :gk_icons do
   name        'GK Icons'
   author      'Jimmy Westberg'
   description 'One syntax for external icon packs in wiki text, issues and other plugins'
-  version     '1.00.000'
+  version     '1.01.000'
   requires_redmine version_or_higher: '6.0.0'
 
   settings default: { 'disabled_where_used' => 'shown', 'missing_where_used' => 'shown' }, partial: 'settings/gk_icons_settings'
@@ -36,16 +38,16 @@ Redmine::Hook.add_listener(GkIcons::Hooks) unless Redmine::Hook.listeners.any?(G
 # Once every plugin is in
 Rails.configuration.after_initialize do
   GkIcons::History.register_records! # Records loads after icons
-  # Declared functions, off for a new installation; gui_stuff loads after icons
-  if defined?(::GkGuiStuff::Features)
-    ::GkGuiStuff::Features.register('icons.in_text', plugin: :gk_icons, default: false,
-                                                      label: :label_gk_feature_icons_in_text, help: :text_gk_feature_icons_in_text)
-    ::GkGuiStuff::Features.register('icons.library_for_users', plugin: :gk_icons, default: false,
-                                                                label: :label_gk_feature_icons_library_for_users,
-                                                                help: :text_gk_feature_icons_library_for_users)
-    ::GkGuiStuff::Features.register('icons.editor_insert', plugin: :gk_icons, default: false,
-                                                            label: :label_gk_feature_icons_editor_insert,
-                                                            help: :text_gk_feature_icons_editor_insert)
+  # Declared functions in records' register, off for a new installation; records loads after icons
+  if defined?(::GkRecords::Features) && ::GkRecords::Features.respond_to?(:register)
+    ::GkRecords::Features.register('icons.in_text', plugin: :gk_icons,
+                                                     label: :label_gk_feature_icons_in_text, help: :text_gk_feature_icons_in_text)
+    ::GkRecords::Features.register('icons.library_for_users', plugin: :gk_icons,
+                                                               label: :label_gk_feature_icons_library_for_users,
+                                                               help: :text_gk_feature_icons_library_for_users)
+    ::GkRecords::Features.register('icons.editor_insert', plugin: :gk_icons,
+                                                           label: :label_gk_feature_icons_editor_insert,
+                                                           help: :text_gk_feature_icons_editor_insert)
   end
 end
 # Icons in text (icons.in_text), the library for every signed-in person (icons.library_for_users) and the button Insert

@@ -27,7 +27,7 @@ This plugin is developed and tested on Windows 11 with PostgreSQL only. That is 
 GK plugins:
 
 - Required: none.
-- Optional: gk_records (reasons and history for icon and pack states and groups), gk_gui_stuff (the switchable functions "Icons in text", "Icon library for all signed-in users" and "Insert icon in the editor"; without it all three stay off), gk_compat (core's colour variables in the older supported series; without it the stylesheet's fallback colours are used), gk_fields (the icon groups' names and descriptions in other languages), gk_scenarios (the plugin's scenario checks).
+- Optional: gk_records (reasons and history for icon and pack states and groups, and the register of the switchable functions "Icons in text", "Icon library for all signed-in users" and "Insert icon in the editor"; without it all three stay off), gk_gui_stuff (the page Administration > Functions where the three functions are switched on), gk_compat (core's colour variables in the older supported series; without it the stylesheet's fallback colours are used), gk_fields (the icon groups' names and descriptions in other languages), gk_scenarios (the plugin's scenario checks).
 
 ## Installation
 
@@ -61,7 +61,7 @@ A pack without a recipe works the same way: a folder of svg files and its own `p
 
 - Administration > Plugins > Configure (GK Icons): whether disabled icons and icons missing on disk are shown or not where they are already used, the list of GK's icons, and the pack roots with each found pack (key, number of icons, variants, license and a sample).
 - Administration > Icon library: manage the states of icons and packs, and the icon groups.
-- With gk_gui_stuff, Administration > Functions switches "Icons in text", "Icon library for all signed-in users" and "Insert icon in the editor" on or off. All three are off in a new installation.
+- With gk_records and gk_gui_stuff, Administration > Functions switches "Icons in text", "Icon library for all signed-in users" and "Insert icon in the editor" on or off. All three are off in a new installation.
 
 ## Usage
 

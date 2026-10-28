@@ -46,8 +46,8 @@ module GkIcons
 
   def exists?(name) = !source(name).nil?
 
-  # A declared function in gui_stuff's Functions; off (the declared default) when gui_stuff is not there
-  def feature?(key) = defined?(::GkGuiStuff::Features) ? ::GkGuiStuff::Features.on?(key) : false
+  # A declared function in records' register; off until switched on, and off when records is not there
+  def feature?(key) = defined?(::GkRecords::Features) ? ::GkRecords::Features.on?(key) : false
   def names = (core.keys + own.keys).uniq.sort
   def all_names = names + Packs.names
 

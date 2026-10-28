@@ -23,7 +23,7 @@
     <thead><tr><th><%= l(:label_gk_icons_pack_root) %></th><th><%= l(:field_status) %></th></tr></thead>
     <tbody>
     <% GkIcons::Packs.roots.each do |r| %>
-      <tr><td class="name"><code><%= GkIcons::Text.display_path(r) %></code></td><% found = File.directory?(r) ? 'found' : 'missing' %><td class="status"><%= content_tag('span', l(:"label_gk_icons_root_#{found}"), class: "gk-icons-root-state gk-icons-root-state-#{found}") %></td></tr>
+      <tr><td class="name"><code><%= GkIcons::Text.display_path(r) %></code></td><% found = File.directory?(r) ? 'found' : 'missing' %><td class="status"><%= content_tag('span', l(:"label_gk_icons_root_#{found}"), class: "badge #{found == 'found' ? 'badge-status-closed' : 'badge-status-locked'} gk-icons-root-state gk-icons-root-state-#{found}") %></td></tr>
     <% end %>
     </tbody>
   </table>
@@ -79,6 +79,9 @@
   .gk-icons-grid { columns: 190px; column-gap: 12px; }
   .gk-icons-cell { display: flex; align-items: center; gap: 6px; margin-block-end: 4px; break-inside: avoid; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .gk-icons-packs-settings td.gk-icons-sample { white-space: nowrap; }
+  /* a root's state is core's badge (found green, missing grey, outlined as in core), in the middle of its row: core
+     lifts .badge for headings and takes the lift away again in its own lists */
+  table.list .gk-icons-root-state { inset-block-end: initial; vertical-align: middle; }
 </style>
 <% if changelog %>
 <fieldset class="box"><legend><%= l(:label_gk_icons_changelog) %></legend>

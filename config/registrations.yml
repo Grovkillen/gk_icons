@@ -54,7 +54,7 @@ disk_areas:             # rötterna där paket söks (GkIcons::Packs.roots i pac
   - {key: packs_machine, path: "<redmine>/../../../icon_packs", kind: content}                    # delas av maskinens instanser
   - {key: packs_instance, path: "<attachments>/icon_packs", kind: content}                        # bara den här instansen
   - {key: packs_env, env: GK_ICON_PACKS, kind: content}                                           # mapparna i miljövariabeln, skilda som i PATH
-features:               # gui_stuff Features (init.rb), av från början
+features:               # records Features (init.rb), av från början
   - {key: icons.in_text, default: false, label: label_gk_feature_icons_in_text, help: text_gk_feature_icons_in_text}
   - {key: icons.library_for_users, default: false, label: label_gk_feature_icons_library_for_users, help: text_gk_feature_icons_library_for_users}
   - {key: icons.editor_insert, default: false, label: label_gk_feature_icons_editor_insert, help: text_gk_feature_icons_editor_insert}   # knappen Infoga ikon i cores jsToolBar (gk_icons.js)
