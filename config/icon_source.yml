@@ -17,6 +17,8 @@ icons:
   - { name: language, svg: language, used_by: fields }
   - { name: mail, svg: mail, used_by: gui_stuff }
   - { name: map-pin, svg: map-pin, used_by: gis }
+  - { name: masks-theater, svg: masks-theater, used_by: people }
+  - { name: minimize, svg: minimize, used_by: gui_stuff }
   - { name: own-field, svg: diamond, used_by: gui_stuff }
   - { name: palette, svg: palette, used_by: theme_engine }
   - { name: pause, svg: player-pause, used_by: gui_stuff }
@@ -55,3 +57,4 @@ icons:
   - { name: tracker-support, svg: headset, used_by: palette }
   - { name: tracker-task, svg: checklist, used_by: palette }
   - { name: truck, svg: truck, used_by: palette }
+  - { name: world, svg: world, used_by: gui_stuff }

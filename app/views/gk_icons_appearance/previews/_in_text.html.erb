@@ -1,0 +1,8 @@
+<%# Visa for icons in text, drawn only from GK GUI Stuff's page Appearance with its helpers: a sentence with the code
+    :gk/status-done: written out, as without the setting; with it, the same sentence with the icon drawn as formatted
+    text draws it (gk_icon_in_text). row: the setting %>
+<% name = GkIcons.exists?('status-done') ? 'status-done' : 'checked' %>
+<% code = ":gk/#{name}:" %>
+<% sentence = ->(end_part) { content_tag(:span, safe_join([l(:text_gk_icons_preview_sentence), end_part], ' ')) } %>
+<% mid = method(:gk_gui_stuff_appearance_preview).parameters.map(&:last).include?(:mid_line) ? { mid_line: true } : {} %>
+<%= gk_gui_stuff_appearance_preview(row, off: sentence.call(code), on: sentence.call(gk_icon_in_text(name, code.delete(':'))), **mid) %>

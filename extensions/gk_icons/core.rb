@@ -48,6 +48,12 @@ module GkIcons
 
   # A declared function in records' register; off until switched on, and off when records is not there
   def feature?(key) = defined?(::GkRecords::Features) ? ::GkRecords::Features.on?(key) : false
+
+  # An appearance setting in records' register, for the person reading (optional lets each person switch it off);
+  # off without records. Icons in text is one, also for someone not logged in.
+  IN_TEXT = 'icons.in_text'
+  def appearance?(key, user = ::User.current) = defined?(::GkRecords::AppearanceSettings) ? ::GkRecords::AppearanceSettings.on_for?(key, user) : false
+
   def names = (core.keys + own.keys).uniq.sort
   def all_names = names + Packs.names
 
@@ -157,12 +163,12 @@ module GkIcons
   def markup(name) = core[name.to_s] || own[name.to_s]
 
   # The words of the script: its own (text_gk_icons_js_<word>), and core's where core has the word
-  JS_WORDS = %w[search all none no_match copied showing all_states state_active state_disabled state_missing missing_info missing_choose
-                saved refreshing refreshed groups no_groups selected mark mark_title mark_disabled mark_missing only_disabled
+  # (the library's own words, Kopierat, the page numbers, Per sida and the cross, are GK GUI Stuff's library's)
+  JS_WORDS = %w[search all none no_match showing all_states state_active state_disabled state_missing missing_info missing_choose
+                saved refreshing refreshed groups no_groups selected mark_title mark_disabled mark_missing only_disabled only_missing
                 pack_off pack pack_change none_marked changed skipped choose_group in_text in_code state cannot_disable
                 change_state choose_active choose_disabled unchanged ratio similar insert pack_or_group].freeze
-  CORE_WORDS = { name: :field_name, copy: :button_copy, close: :button_close, cancel: :button_cancel, previous: :label_previous,
-                 next: :label_next, per_page: :label_display_per_page, save: :button_save }.freeze
+  CORE_WORDS = { name: :field_name, cancel: :button_cancel, save: :button_save }.freeze
 
   def js_words
     JS_WORDS.to_h { |k| [k, ::I18n.t(:"text_gk_icons_js_#{k}")] }.merge(CORE_WORDS.transform_keys(&:to_s).transform_values { |k| ::I18n.t(k) })
@@ -366,19 +372,22 @@ module GkIcons
           };
         })(#{cfg.to_json});
       JS
-      out += in_text_copy if GkIcons.feature?('icons.in_text')
+      out += in_text_copy if GkIcons.appearance?(GkIcons::IN_TEXT)
       editor ? out + GkIcons.assets_tags(self) : out
     end
 
-    # A click on an icon in formatted text (an issue, a note, a wiki page) copies its code, :pack/name:, and says
-    # "Copied" at the icon, so that an icon found anywhere can be put in a note; an icon inside a link follows the link.
-    # With core's hover tooltip (jQuery UI's, setupHoverTooltips) the tooltip that showed the icon's code says "Copied"
-    # instead, and shows the code again when it closes (the pointer leaves); core empties the title while it shows, so
-    # the code is read where the tooltip keeps it. Without it "Copied" is a word of its own at the icon, the title taken
-    # off meanwhile and put back when the word goes.
+    # A click on an icon in formatted text (an issue, a note, a wiki page) copies its code, :pack/name:, so that an icon
+    # found anywhere can be put in a note; an icon inside a link follows the link. With GK GUI Stuff it is said by the
+    # shared whisper (GkGui.copy), under the icon; core's hover tooltip closes first, so that the two never stand on top
+    # of each other. Without GK GUI Stuff it is said at the icon: with core's hover tooltip (jQuery UI's,
+    # setupHoverTooltips) the tooltip that showed the icon's code says "Copied" instead, and shows the code again when it
+    # closes (the pointer leaves); core empties the title while it shows, so the code is read where the tooltip keeps it.
+    # Without the tooltip "Copied" is a word of its own at the icon, the title taken off meanwhile and put back when the
+    # word goes.
     def in_text_copy
       word = ::I18n.t(:text_gk_icons_js_copied)
-      sel = 'span.gk-icon-in-text[title], span.gk-icon-in-text[data-gk-icons-title]'
+      whisper = ::I18n.t(:text_gk_icons_js_copied_code)
+      sel ='span.gk-icon-in-text[title], span.gk-icon-in-text[data-gk-icons-title]'
       style = content_tag('style', 'span.gk-icon-in-text[title], span.gk-icon-in-text[data-gk-icons-title] { cursor: copy; position: relative; } ' \
                                    'span.gk-icon-in-text .gk-icons-copied-text { position: absolute; inset-block-end: 100%; inset-inline-start: 50%; ' \
                                    'translate: -50% 0; z-index: 5; padding-inline: 5px; border-radius: 3px; font-size: 12px; line-height: 1.6; ' \
@@ -392,6 +401,11 @@ module GkIcons
           if (!title) return;
           s.gkIconsCode = title;
           var code = ':' + title + ':';
+          if (window.GkGui && window.GkGui.copy) {
+            if (tip) jq(s).tooltip('close');
+            window.GkGui.copy(code, #{whisper.to_json}, s);
+            return;
+          }
           var said = function () {
             if (tip) {
               if (s.gkIconsTipWas === undefined) {

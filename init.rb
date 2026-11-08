@@ -1,9 +1,11 @@
 # frozen_string_literal: true
-# Revision: 0.00.001
-# Depends on: none required; optional gk_records, gk_gui_stuff, gk_compat, gk_fields, gk_scenarios.
+# Revision: 0.00.003
+# Depends on: gk_gui_stuff required (the icon library is drawn on its library primitive; gk_gui_stuff loads before
+# gk_icons); optional gk_records, gk_compat, gk_fields, gk_core_stuff (icons in text), gk_scenarios.
 
 require_relative 'extensions/gk_icons/core'
 require_relative 'extensions/gk_icons/text'   # Icons in text, the library, the picker
+require_relative 'extensions/gk_icons/library' # The icon library on GK GUI Stuff's library: sorts, per page, columns
 require_relative 'extensions/gk_icons/packs' # Icon packs, folders outside the plugin, found by themselves
 require_relative 'extensions/gk_icons/recipes' # Recipes for common packs, shown on the Packs tab
 require_relative 'extensions/gk_icons/history' # The icons' history in records
@@ -19,7 +21,7 @@ Redmine::Plugin.register :gk_icons do
   name        'GK Icons'
   author      'Jimmy Westberg'
   description 'One syntax for external icon packs in wiki text, issues and other plugins'
-  version     '1.01.000'
+  version     '1.02.000'
   requires_redmine version_or_higher: '6.0.0'
 
   settings default: { 'disabled_where_used' => 'shown', 'missing_where_used' => 'shown' }, partial: 'settings/gk_icons_settings'
@@ -40,8 +42,6 @@ Rails.configuration.after_initialize do
   GkIcons::History.register_records! # Records loads after icons
   # Declared functions in records' register, off for a new installation; records loads after icons
   if defined?(::GkRecords::Features) && ::GkRecords::Features.respond_to?(:register)
-    ::GkRecords::Features.register('icons.in_text', plugin: :gk_icons,
-                                                     label: :label_gk_feature_icons_in_text, help: :text_gk_feature_icons_in_text)
     ::GkRecords::Features.register('icons.library_for_users', plugin: :gk_icons,
                                                                label: :label_gk_feature_icons_library_for_users,
                                                                help: :text_gk_feature_icons_library_for_users)
@@ -49,9 +49,17 @@ Rails.configuration.after_initialize do
                                                            label: :label_gk_feature_icons_editor_insert,
                                                            help: :text_gk_feature_icons_editor_insert)
   end
+  # Icons in text is an appearance setting in records' register (group Text and links), off for a new installation; a
+  # function before, so the page says it moved
+  if defined?(::GkRecords::AppearanceSettings)
+    ::GkRecords::AppearanceSettings.register(GkIcons::IN_TEXT, plugin: :gk_icons, group: :text, moved_from: :features, anonymous: true,
+                                                                preview: 'gk_icons_appearance/previews/in_text',
+                                                                label: :label_gk_icons_appearance_in_text, help: :text_gk_icons_appearance_in_text)
+  end
 end
-# Icons in text (icons.in_text), the library for every signed-in person (icons.library_for_users) and the button Insert
-# icon in the editor's toolbar (icons.editor_insert) are declared functions, off by default.
+# Icons in text (icons.in_text) is an appearance setting, off by default; the library for every signed-in person
+# (icons.library_for_users) and the button Insert icon in the editor's toolbar (icons.editor_insert) are declared
+# functions, off by default.
 # The places where an administrator writes a reason, declared in records once every plugin has loaded, required by
 # default. A group's reason is asked only when its state changes.
 Rails.configuration.after_initialize do

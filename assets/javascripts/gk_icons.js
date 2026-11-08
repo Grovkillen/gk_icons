@@ -1,8 +1,9 @@
 // gk_icons: the icon library, the icon picker and the button Insert icon in the editor's toolbar. All read one list of
 // every icon there is (core's, GK's and the packs'), fetched once per page when first needed.
-//   the library (a page): look through all icons, search, choose a group, page through with core's page numbers, as a
-//   grid or a list; a click copies how the icon is written and shows it in the panel beside: large, at four sizes,
-//   its aspect ratio, how it is written, its pack and groups, its state, and icons with a similar name
+//   the library (a page, on GK GUI Stuff's library as data): look through all icons, search, choose a pack or a
+//   group, page through with core's page numbers, as a grid or core's list; a click copies how the icon is written
+//   and shows it in the panel beside: large, at four sizes, its aspect ratio, how it is written, its pack and groups,
+//   its state, and icons with a similar name
 //   the picker: any <input data-gk-icons-picker> becomes a button that shows the chosen icon and opens a small
 //   window with a search field and the icons, as the field search in the filter builder does. The input keeps
 //   the value (pack/name or a name), so the form works as before; without this script it is a plain text field.
@@ -16,8 +17,8 @@
   S.started = true;
   var T = window.GkIconsText || {};
   function t(k, d) { return T[k] || d; }
-  // the marks core's page numbers and an image's size are written with (the file stays ASCII)
-  var LAQUO = String.fromCharCode(171), RAQUO = String.fromCharCode(187), HELLIP = String.fromCharCode(8230), TIMES = String.fromCharCode(215);
+  // the mark an image's size is written with (the file stays ASCII)
+  var TIMES = String.fromCharCode(215);
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
   function remember(k, v) {
     try {
@@ -65,29 +66,6 @@
                         headers: { Accept: 'application/json', 'X-CSRF-Token': token() } })
       .then(function (r) { return r.json().then(function (j) { j.status = r.status; return j; }); });
   }
-  function say(text) {
-    if (window.GkGui && window.GkGui.whisper) { window.GkGui.whisper(text); return; }
-    var n = document.getElementById('gk-icons-said') || document.body.appendChild(el('div', 'gk-icons-said'));
-    n.id = 'gk-icons-said'; n.setAttribute('role', 'status'); n.textContent = text; n.classList.add('gk-icons-said-on');
-    clearTimeout(say.timer); say.timer = setTimeout(function () { n.classList.remove('gk-icons-said-on'); }, 1600);
-  }
-  function copy(text, done) {
-    function ok() { if (done) done(); }
-    function old() {
-      var a = el('textarea'); a.value = text; a.style.position = 'fixed'; a.style.insetBlockStart = '-1000px';
-      document.body.appendChild(a); a.select();
-      try { if (document.execCommand('copy')) ok(); } catch (e) { /* nothing copied, nothing said */ }
-      a.remove();
-    }
-    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(ok, old); else old();
-  }
-  // "Copied" for a moment at the element that was copied (it is positioned), read out as a status
-  function notice(at) {
-    var old0 = at.querySelector(':scope > .gk-icons-copied'); if (old0) old0.remove();
-    var n = el('span', 'gk-icons-copied', t('copied', 'Copied')); n.setAttribute('role', 'status');
-    at.appendChild(n);
-    setTimeout(function () { n.remove(); }, 1400);
-  }
   // how an icon is written in text: :fa/hammer:, and :gk/name: for core's and GK's own
   function own(i) { return i.group === 'core' || i.group === 'own'; }
   function inText(i) { return ':' + (own(i) ? 'gk/' + i.short : i.name) + ':'; }
@@ -128,241 +106,89 @@
   }
 
   // ------------------------------------------------------------------ the library page
-  // An administrator (data-gk-icons-admin) sees every icon of the active packs, the ones disabled one by one greyed with a
-  // mark, filters them, checks many and acts on them in the box above the icons (the checkboxes show while that box is
-  // open), and changes an icon's state in its panel; a disabled pack shows no icons and its chip is greyed. Everyone
-  // looks, searches, copies and opens the panel.
+  // The Icons tab on GK GUI Stuff's library as data (window.GkGuiLibrary, gk_gui_stuff_library.js): the search field,
+  // the chips, the grid or Lista, core's page numbers with Per sida, Sortera, the panel beside, the keys and the address
+  // are the library's. This plugin gives it the icons and their parts: the small picture, the ranked search, the chips
+  // (the packs, the installation's own groups and, for an administrator, the states), a click that copies the icon as
+  // Ett klick kopierar says, the panel's content, the checked icons and the reload after a change. An administrator
+  // (data-gk-icons-admin) sees every icon of the active packs, the ones disabled one by one greyed with a mark, checks
+  // many and acts on them in the box above the library (the checkboxes show while that box is open), and changes an
+  // icon's state in its panel; a disabled pack shows no icons and its chip is greyed and says where it is enabled.
   function library(root) {
+    var L = window.GkGuiLibrary, host = root.querySelector('[data-gk-gui-lib]');
+    if (!L || !host) return;
     var admin = root.dataset.gkIconsAdmin === '1';
     function part(n) { return root.querySelector('[data-gk-icons="' + n + '"]'); }
-    var input = part('search'), chips = part('groups'), grid = part('grid'), count = part('count'), pages = part('pages');
-    var statesBox = part('states'), panel = part('panel'), main = part('main'), said = part('said'), selCount = part('selcount');
-    var sortSel = part('sort'), viewSel = part('view'), selGroup = part('selgroup'), formSel = part('form');
+    var said = part('said'), selCount = part('selcount'), selGroup = part('selgroup'), formSel = part('form');
     var tpl = root.querySelector('template[data-gk-icons="reason"]');
-    var perOpts = (root.dataset.gkIconsPerPage || '25,50,100').split(',').map(Number).filter(function (n) { return n > 0; });
-    var group = '', state = '', hits = [], all = [], timer = null, wired = false, selected = {}, packOn = {}, page = 1, openName = null, fid = 0;
-    var per = Number(remember('per')); if (perOpts.indexOf(per) < 0) per = perOpts[0] || 25;
-    if (viewSel && remember('view') === 'list') viewSel.value = 'list';
-    if (sortSel && ['name_asc', 'name_desc', 'group'].indexOf(remember('sort')) >= 0) sortSel.value = remember('sort');
+    var all = [], packOn = {}, lib = null, marking = false;
+    // the choices the icon library kept under its own keys before it moved to the library: carried over once
+    try {
+      var ls = window.localStorage, key = host.getAttribute('data-gk-gui-lib');
+      [['view', 'gkguistuff.view.lib.view.' + key], ['per', 'gkguistuff.lib.' + key + '.per'], ['sort', 'gkguistuff.lib.' + key + '.sort']].forEach(function (p) {
+        var was = ls.getItem('gk_icons.library.' + p[0]);
+        if (was == null) return;
+        if (ls.getItem(p[1]) == null) ls.setItem(p[1], was);
+        ls.removeItem('gk_icons.library.' + p[0]);
+      });
+    } catch (e) { /* no memory in this browser */ }
     if (formSel && ['text', 'name'].indexOf(remember('form')) >= 0) formSel.value = remember('form');
     if (formSel) formSel.addEventListener('change', function () { remember('form', formSel.value); });
     function form() { return formSel && formSel.value === 'name' ? 'name' : 'text'; }
-    function tell(text) { if (said) { said.textContent = text; } else { say(text); } }
+    function tell(text) { if (said) said.textContent = text; else if (lib) lib.say(text); }
     function paintSel() {
-      if (selCount) selCount.textContent = t('selected', '%{n} checked').replace('%{n}', Object.keys(selected).length);
-    }
-    // The checkboxes are for the box Checked icons: they show while it is open (without gui_stuff's box, always).
-    // Folding the box unchecks every icon, so nothing stays checked out of sight.
-    var wasMarking = null;
-    function marking() {
-      var box = root.querySelector('.gk-icons-sel-box fieldset');
-      var on = !!box && !(box.classList.contains('collapsible') && box.classList.contains('collapsed'));
-      root.classList.toggle('gk-icons-marking', admin && on);
-      if (wasMarking === true && !on && Object.keys(selected).length) { selected = {}; draw(); paintSel(); }
-      wasMarking = on;
-    }
-    if (admin) {
-      var selBox = root.querySelector('.gk-icons-sel-box fieldset');
-      if (selBox && window.MutationObserver) new MutationObserver(marking).observe(selBox, { attributes: true, attributeFilter: ['class'] });
-      marking();
-    }
-    function sorted(list0) {
-      var how = sortSel ? sortSel.value : 'name_asc';
-      if (how === 'group') return list0; // the server's order: Redmine, GK's, then each pack, each by name
-      var out = list0.slice().sort(function (a, b) { return a.short.localeCompare(b.short) || a.name.localeCompare(b.name); });
-      return how === 'name_desc' ? out.reverse() : out;
-    }
-    function check(i, b) {
-      var box = el('input', 'gk-icons-check'); box.type = 'checkbox'; box.checked = !!selected[i.name];
-      box.title = t('mark_title', 'Check for the box Checked icons');
-      box.setAttribute('aria-label', t('mark', 'Check') + ' ' + i.name);
-      box.addEventListener('click', function (e) { e.stopPropagation(); });
-      box.addEventListener('change', function () {
-        if (box.checked) selected[i.name] = 1; else delete selected[i.name];
-        if (b) b.classList.toggle('gk-icons-item-marked', box.checked);
-        paintSel();
-      });
-      if (box.checked && b) b.classList.add('gk-icons-item-marked');
-      return box;
-    }
-    function card(i) {
-      var b = cell(i, 28), wrap = el('div', 'gk-icons-cell');
-      wrap.dataset.gkIconsName = i.name;
-      if (admin && i.state !== 'active') {
-        b.classList.add('gk-icons-state-' + i.state);
-        // not by colour alone: a mark with its words, for the eye and the screen reader
-        b.title = i.name + ': ' + t('mark_' + i.state, t('state_' + i.state, i.state));
-        b.appendChild(el('span', 'gk-icons-item-state', t('state_' + i.state, i.state)));
-      }
-      if (i.name === openName) { b.classList.add('gk-icons-item-open'); b.setAttribute('aria-pressed', 'true'); }
-      if (admin) { var holder = el('span', 'gk-icons-check-holder'); holder.appendChild(check(i, b)); wrap.appendChild(holder); }
-      wrap.appendChild(b);
-      b.addEventListener('click', function () { choose(i, wrap); });
-      return wrap;
-    }
-    function groupLabel(key) {
-      var g = (all.groups || []).filter(function (x) { return x.key === key; })[0];
-      return g ? g.label : key;
-    }
-    function badge(st) {
-      var cls = { active: 'badge-status-closed', disabled: 'badge-status-locked' }[st] || 'badge-private';
-      return el('span', 'badge ' + cls, t('state_' + st, st));
-    }
-    // the list view: core's list, one row per icon
-    function table(slice) {
-      var tb = el('table', 'list gk-icons-table'), head = el('tr'), body = el('tbody');
-      if (admin) head.appendChild(el('th', 'checkbox'));
-      [['icon', ''], ['name', t('name', 'Name')], ['group', t('pack', 'Pack')]].concat(admin ? [['status', t('state', 'State')]] : []).forEach(function (c) {
-        head.appendChild(el('th', c[0], c[1]));
-      });
-      var th = el('thead'); th.appendChild(head); tb.appendChild(th); tb.appendChild(body);
-      slice.forEach(function (i, n) {
-        var tr = el('tr', (n % 2 ? 'even' : 'odd') + (i.name === openName ? ' context-menu-selection' : ''));
-        tr.dataset.gkIconsName = i.name;
-        if (admin) { var c0 = el('td', 'checkbox'); c0.appendChild(check(i, null)); tr.appendChild(c0); }
-        var c1 = el('td', 'icon'); c1.appendChild(S.svg(i.name, 24)); tr.appendChild(c1);
-        var c2 = el('td', 'name'), a = el('a', null, i.name); a.href = '#';
-        a.addEventListener('click', function (e) { e.preventDefault(); choose(i, c2); });
-        c2.style.position = 'relative'; c2.appendChild(a); tr.appendChild(c2);
-        tr.appendChild(el('td', 'group', groupLabel(i.group)));
-        if (admin) { var c4 = el('td', 'status'); c4.appendChild(badge(i.state)); tr.appendChild(c4); }
-        body.appendChild(tr);
-      });
-      return tb;
-    }
-    function draw() {
-      var last = Math.max(1, Math.ceil(hits.length / per));
-      page = Math.min(Math.max(1, page), last);
-      var from = (page - 1) * per, slice = hits.slice(from, from + per), view = viewSel ? viewSel.value : 'grid';
-      grid.textContent = '';
-      // no hits: core's no-data line across the box's full width, the same in both views (never a cell of the grid)
-      grid.className = view === 'list' || !hits.length ? 'gk-icons-rows' : 'gk-icons-grid';
-      if (!hits.length) grid.appendChild(el('p', 'nodata', t('no_match', 'No match')));
-      else if (view === 'list') grid.appendChild(table(slice));
-      else slice.forEach(function (i) { grid.appendChild(card(i)); });
-      if (count) count.textContent = '(' + hits.length + ')';
-      paginate(from, slice.length);
-    }
-    // core's page numbers, as pagination_links_full draws them: ul.pages with previous, the pages near this one, the
-    // first and the last, next; then (first-last/count) and Per page
-    function paginate(from, n) {
-      pages.textContent = '';
-      if (!hits.length) return;
-      var last = Math.ceil(hits.length / per), ul = el('ul', 'pages');
-      function li(cls, text, to) {
-        var l = el('li', cls);
-        if (to) {
-          var a = el('a', null, text); a.href = '#';
-          a.addEventListener('click', function (e) { e.preventDefault(); page = to; draw(); grid.scrollIntoView({ block: 'nearest' }); });
-          l.appendChild(a);
-        } else {
-          l.appendChild(el('span', null, text));
-        }
-        ul.appendChild(l);
-      }
-      if (last > 1) li(page > 1 ? 'previous page' : 'previous', LAQUO + ' ' + t('previous', 'Previous'), page > 1 ? page - 1 : 0);
-      var linked = [1, page, last];
-      for (var p = page - 2; p <= page + 2; p++) { if (p > 1 && p < last) linked.push(p); }
-      linked = linked.filter(function (x, k) { return linked.indexOf(x) === k; }).sort(function (x, y) { return x - y; });
-      if (linked.length > 1) {
-        var prev = null;
-        linked.forEach(function (x) {
-          if (prev && prev !== x - 1) li('spacer', HELLIP);
-          if (x === page) li('current', String(x)); else li('page', String(x), x);
-          prev = x;
-        });
-      }
-      if (last > 1) li(page < last ? 'next page' : 'next', t('next', 'Next') + ' ' + RAQUO, page < last ? page + 1 : 0);
-      pages.appendChild(ul);
-      var info = el('span');
-      info.appendChild(el('span', 'items', '(' + (from + 1) + '-' + (from + n) + '/' + hits.length + ')'));
-      // core's per_page_options: the choices up to the first that holds every hit, and the one chosen
-      var opts = perOpts, max;
-      if (hits.length > opts[0]) { max = opts.filter(function (v) { return v >= hits.length; })[0] || hits.length; } else { max = hits.length; }
-      opts = opts.filter(function (v) { return v <= max || v === per; });
-      if (opts.length && !(opts.length === 1 && opts[0] === per)) {
-        info.appendChild(document.createTextNode(' '));
-        var pp = el('span', 'per-page'), words = t('per_page', 'Per page: %{value}').split('%{value}');
-        pp.appendChild(document.createTextNode(words[0]));
-        opts.forEach(function (v, k) {
-          if (k) pp.appendChild(document.createTextNode(', '));
-          if (v === per) { pp.appendChild(el('span', 'selected', String(v))); return; }
-          var a = el('a', null, String(v)); a.href = '#';
-          a.addEventListener('click', function (e) { e.preventDefault(); per = v; remember('per', String(v)); page = 1; draw(); });
-          pp.appendChild(a);
-        });
-        pp.appendChild(document.createTextNode(words[1] || ''));
-        info.appendChild(pp);
-      }
-      pages.appendChild(info);
+      if (selCount && lib) selCount.textContent = t('selected', '%{n} checked').replace('%{n}', lib.selected().length);
     }
     function visible() {
       // a disabled pack lists no icons, not for an administrator either
       return all.filter(function (i) { return packOn[i.group] !== false; });
     }
-    function run(keepPage) {
-      hits = search(sorted(visible()), input.value, group, all.sets).filter(function (i) { return !state || i.state === state; });
-      if (keepPage !== true) page = 1;
-      draw();
+    function groupLabel(k) {
+      var g = (all.groups || []).filter(function (x) { return x.key === k; })[0];
+      return g ? g.label : k;
     }
-    function chip(label, n, on, pick) {
-      var c = el('button', 'gk-icons-chip' + (on ? ' gk-icons-chip-on' : ''), label + (n != null ? ' (' + n + ')' : '')); c.type = 'button';
-      c.setAttribute('aria-pressed', on ? 'true' : 'false');
-      c.addEventListener('click', pick);
-      return c;
+    // An icon's state says something about the icon and does nothing: GK GUI Stuff's flag (a fixed state) in the
+    // state's role, as { text, role } for GkGui.flag.put and the library's facts
+    function stateFlag(st) {
+      return { text: t('state_' + st, st), role: { active: 'notice', disabled: 'tip' }[st] || 'warning' };
     }
-    function paintChips() {
-      chips.textContent = '';
-      chips.appendChild(chip(t('all', 'All'), visible().length, group === '', function () { group = ''; paintChips(); run(); }));
+    // The chips: Alla, the installation's own groups (dashed; their state in brackets for an administrator), the packs
+    // (a disabled one greyed, not to be chosen, saying where it is enabled), and for an administrator the states
+    function rows(items) {
+      var groups = [{ value: '', label: t('all', 'All'), count: items.length }];
       (all.sets || []).forEach(function (s) {
-        var label = s.label + (admin && s.state !== 'active' ? ' [' + t('state_' + s.state, s.state) + ']' : '');
-        var c = chip(label, s.count, s.key === group, function () { group = s.key; paintChips(); run(); });
-        c.classList.add('gk-icons-chip-set');
-        chips.appendChild(c);
+        groups.push({ value: s.key, label: s.label + (admin && s.state !== 'active' ? ' [' + t('state_' + s.state, s.state) + ']' : ''), count: s.count, dashed: true });
       });
-      all.groups.forEach(function (g) {
-        if (packOn[g.key] === false) {
-          // the pack is disabled: its chip stays, greyed and not to be chosen, and says where it is switched on
-          var off = chip(g.label + ' [' + t('state_' + g.state, g.state) + ']', null, false, function () {});
-          off.disabled = true; off.classList.add('gk-icons-chip-off'); off.title = t('pack_off', 'The pack is disabled and shows no icons. It is enabled under the tab Packs.');
-          off.setAttribute('aria-disabled', 'true');
-          chips.appendChild(off);
-          return;
-        }
-        chips.appendChild(chip(g.label, g.count, g.key === group, function () { group = g.key; paintChips(); run(); }));
+      (all.groups || []).forEach(function (g) {
+        if (packOn[g.key] === false) groups.push({ value: g.key, label: g.label + ' [' + t('state_' + g.state, g.state) + ']', disabled: true, reason: t('pack_off', '') });
+        else groups.push({ value: g.key, label: g.label, count: g.count });
       });
-      if (!statesBox) return;
-      statesBox.textContent = '';
-      [['', t('all_states', 'All states')], ['disabled', t('only_disabled', 'Disabled')], ['missing', t('state_missing', 'missing on disk')]].forEach(function (p) {
-        var n = visible().filter(function (i) { return !p[0] || i.state === p[0]; }).length;
-        if (p[0] === 'missing' && !n) return;
-        statesBox.appendChild(chip(p[1], n, state === p[0], function () { state = p[0]; paintChips(); run(); }));
-      });
+      var out = [{ key: 'group', label: t('pack_or_group', ''), chips: groups, filter: function (i, v) {
+        if (v.indexOf('set:') === 0) { var s = setOf(all.sets, v); return !!(s && s.refs[i.name]); }
+        return i.group === v;
+      } }];
+      if (admin) {
+        var states = [];
+        [['', t('all_states', 'All states')], ['disabled', t('only_disabled', 'Disabled')], ['missing', t('only_missing', 'Missing on disk')]].forEach(function (p) {
+          var n = items.filter(function (i) { return !p[0] || i.state === p[0]; }).length;
+          if (p[0] === 'missing' && !n) return;
+          states.push({ value: p[0], label: p[1], count: n });
+        });
+        out.push({ key: 'state', label: t('state', 'State'), chips: states, filter: function (i, v) { return i.state === v; } });
+      }
+      return out;
     }
-    function load(keepPage) {
-      return list(admin).then(function (a) {
-        all = a; packOn = {};
-        all.groups.forEach(function (g) { packOn[g.key] = g.state === 'active'; });
-        if (group && group.indexOf('set:') !== 0 && packOn[group] === false) group = '';
-        paintChips(); run(keepPage); paintSel();
-        if (openName) {
-          var again = all.filter(function (i) { return i.name === openName; })[0];
-          if (again) openPanel(again); else shut();
-        }
-        if (!wired) {
-          wired = true;
-          input.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(run, 120); });
-          if (sortSel) sortSel.addEventListener('change', function () { remember('sort', sortSel.value); run(); });
-          if (viewSel) viewSel.addEventListener('change', function () { remember('view', viewSel.value); draw(); });
-          input.focus();
-        }
-      });
+    // The checkboxes are for the box Checked icons: they show while it is open (without gui_stuff's box, always).
+    // Folding the box unchecks every icon, so nothing stays checked out of sight.
+    function boxOpen() {
+      var box = root.querySelector('.gk-icons-sel-box fieldset');
+      return !!box && !(box.classList.contains('collapsible') && box.classList.contains('collapsed'));
     }
-    // A click on an icon: copied as the choice above says, "Copied" at the icon, and the icon in the panel
-    function choose(i, at) {
-      var text = form() === 'name' ? i.name : inText(i);
-      copy(text, function () { notice(at); });
-      openPanel(i);
+    function watchBox() {
+      var on = admin && boxOpen();
+      if (marking && !on && lib && lib.selected().length) { marking = on; lib.clearSelection(); return; }
+      marking = on;
+      if (lib) lib.checking();
     }
     // The groups an icon is in, set at once (an icon of a pack, Redmine's or GK's alike)
     function groupBoxes(i) {
@@ -377,54 +203,24 @@
             c.disabled = false;
             if (!j.ok) { c.checked = !c.checked; tell(j.error || String(j.status)); return; }
             if (c.checked) { s.refs[i.name] = 1; s.count += 1; } else { delete s.refs[i.name]; s.count -= 1; }
-            forget(); paintChips();
+            forget(); lib.refresh();
           });
         });
         l.appendChild(c); l.appendChild(document.createTextNode(' ' + s.label + ' ')); box.appendChild(l);
       });
       return box;
     }
-    // The icon being looked at is marked in the grid or the list while its panel is open
-    function markOpen() {
-      grid.querySelectorAll('.gk-icons-item-open').forEach(function (x) { x.classList.remove('gk-icons-item-open'); x.removeAttribute('aria-pressed'); });
-      grid.querySelectorAll('tr.context-menu-selection').forEach(function (x) { x.classList.remove('context-menu-selection'); });
-      if (!openName) return;
-      grid.querySelectorAll('[data-gk-icons-name]').forEach(function (x) {
-        if (x.dataset.gkIconsName !== openName) return;
-        if (x.tagName === 'TR') { x.classList.add('context-menu-selection'); return; }
-        var b = x.querySelector('.gk-icons-item'); if (b) { b.classList.add('gk-icons-item-open'); b.setAttribute('aria-pressed', 'true'); }
-      });
-    }
-    function shut() {
-      openName = null;
-      if (panel) { panel.hidden = true; panel.textContent = ''; }
-      if (main) main.classList.remove('gk-icons-with-panel');
-      markOpen();
-    }
-    // A field to read and copy, with core's copy icon beside it
-    function field(label, value) {
-      var p = el('p', 'gk-icons-field'), id = 'gk-icons-field-' + (++fid);
-      var lb = el('label', null, label); lb.htmlFor = id;
-      var inp = el('input'); inp.type = 'text'; inp.readOnly = true; inp.value = value; inp.id = id;
-      inp.addEventListener('focus', function () { inp.select(); });
-      var c = el('a', 'icon-only gk-icons-copy'); c.href = '#'; c.setAttribute('role', 'button');
-      c.title = t('copy', 'Copy'); c.setAttribute('aria-label', t('copy', 'Copy') + ': ' + label);
-      c.appendChild(S.svg('copy', 18));
-      c.addEventListener('click', function (e) { e.preventDefault(); copy(value, function () { notice(p); }); });
-      p.appendChild(lb); p.appendChild(inp); p.appendChild(document.createTextNode(' ')); p.appendChild(c);
-      return p;
-    }
-    // width x height from the icon's own file: an svg's viewBox (or width and height), a png's size
     // The large picture by the icon's own aspect: a square stays 128 px, a wide or a tall one fills the preview box as
     // far as it goes on its long side (as object-fit: contain), so a 5:1 icon uses the box's width
     function fit(box, w, h) {
       var n = box.firstElementChild; if (!n) return;
-      var maxW = Math.max(128, box.clientWidth - 16), maxH = Math.max(128, box.clientHeight - 16);
+      var maxW = Math.max(128, box.clientWidth - 40), maxH = Math.max(128, box.clientHeight - 40);
       var s = Math.min(maxW / w, maxH / h, 128 / Math.min(w, h));
       var bw = Math.round(w * s), bh = Math.round(h * s);
       if (n.tagName.toLowerCase() === 'svg') { n.setAttribute('width', bw); n.setAttribute('height', bh); }
       n.style.inlineSize = bw + 'px'; n.style.blockSize = bh + 'px';
     }
+    // width x height from the icon's own file: an svg's viewBox (or width and height), a png's size
     function ratio(i, out, done) {
       fetch(S.url(i.name), { credentials: 'same-origin' }).then(function (r) {
         if (!r.ok) throw new Error(String(r.status));
@@ -492,37 +288,27 @@
           b.disabled = false;
           if (!j.ok) { tell(j.error || String(j.status)); return; }
           tell(t('saved', 'Saved') + ': ' + i.name);
-          forget(); load(true);
+          forget(); lib.reload(true);
         });
       });
       return f;
     }
-    function openPanel(i) {
-      if (!panel) return;
-      openName = i.name; markOpen();
-      if (main) main.classList.add('gk-icons-with-panel');
-      panel.hidden = false; panel.textContent = '';
-      var head = el('div', 'gk-icons-panel-head');
-      head.appendChild(el('h3', null, i.name));
-      if (admin) head.appendChild(badge(i.state));
-      var x = el('a', 'icon-only gk-icons-panel-close'); x.href = '#'; x.setAttribute('role', 'button');
-      x.title = t('close', 'Close'); x.setAttribute('aria-label', t('close', 'Close'));
-      x.appendChild(S.svg('close', 18));
-      x.addEventListener('click', function (e) { e.preventDefault(); shut(); input.focus(); });
-      head.appendChild(x);
-      panel.appendChild(head);
-      // large, then at the sizes it is drawn at, then its aspect ratio
-      var big = el('div', 'gk-icons-preview'); big.appendChild(S.svg(i.name, 128)); panel.appendChild(big);
-      var sizes = el('div', 'gk-icons-sizes');
+    // The panel's content under the library's head (the name with the state's flag, and the cross): large, then at the
+    // sizes it is drawn at as small tiles, its aspect ratio, how it is written as the library's code fields, its pack,
+    // its groups, the way to change its state (the state itself is the flag on the name), and icons with a similar name
+    function panel(i, box) {
+      var big = el('div', 'gk-gui-stuff-lib-preview gk-gui-stuff-lib-canvas gk-icons-preview'); big.appendChild(S.svg(i.name, 128)); box.appendChild(big);
+      var sizes = el('div', 'gk-gui-stuff-lib-states gk-icons-sizes');
       [16, 24, 32, 48].forEach(function (n) {
-        var fg = el('figure'); fg.appendChild(S.svg(i.name, n)); fg.appendChild(el('figcaption', null, n + ' px')); sizes.appendChild(fg);
+        var fg = el('figure', 'gk-gui-stuff-lib-state'), cv = el('div', 'gk-gui-stuff-lib-canvas');
+        cv.appendChild(S.svg(i.name, n)); fg.appendChild(cv); fg.appendChild(el('figcaption', null, n + ' px')); sizes.appendChild(fg);
       });
-      panel.appendChild(sizes);
-      var rt = el('p', 'gk-icons-ratio'); panel.appendChild(rt);
-      ratio(i, rt, function (w, h) { if (openName === i.name) fit(big, w, h); });
-      panel.appendChild(field(t('name', 'Name'), i.name));
-      panel.appendChild(field(t('in_text', 'Used in text'), inText(i)));
-      panel.appendChild(field(t('in_code', 'In a plugin'), "gk_icon('" + i.name + "')"));
+      box.appendChild(sizes);
+      var rt = el('p', 'gk-icons-ratio'); box.appendChild(rt);
+      ratio(i, rt, function (w, h) { if (lib.openKey() === i.name) fit(big, w, h); });
+      box.appendChild(lib.code(t('name', 'Name'), i.name));
+      box.appendChild(lib.code(t('in_text', 'Used in text'), inText(i)));
+      box.appendChild(lib.code(t('in_code', 'In a plugin'), "gk_icon('" + i.name + "')"));
       // the pack, and for a pack's icon the way to the whole pack's state
       var pk = el('p');
       pk.appendChild(el('strong', null, t('pack', 'Pack') + ': '));
@@ -531,43 +317,39 @@
         var a = el('a', null, t('pack_change', 'The whole pack is changed under the tab Packs')); a.href = root.dataset.gkIconsPacksUrl + '#gk-icons-pack-' + i.group;
         pk.appendChild(a);
       }
-      panel.appendChild(pk);
+      box.appendChild(pk);
       if (admin) {
-        panel.appendChild(groupBoxes(i));
-        var stp = el('p');
-        stp.appendChild(el('strong', null, t('state', 'State') + ': '));
-        stp.appendChild(badge(i.state)); stp.appendChild(document.createTextNode(' '));
-        panel.appendChild(stp);
+        box.appendChild(groupBoxes(i));
+        // The state is said once: as the flag on the name in the library's head, never again
+        // as a line here; what stays is the way to change it
         if (own(i)) {
           // Redmine's icons and GK's are used by Redmine and the plugins themselves: they have no state to change
-          panel.appendChild(el('p', 'info', t('cannot_disable', "Redmine's icons and GK's icons cannot be disabled: Redmine and the plugins use them.")));
+          box.appendChild(el('p', 'info', t('cannot_disable', "Redmine's icons and GK's icons cannot be disabled: Redmine and the plugins use them.")));
         } else {
-          if (i.state === 'missing') panel.appendChild(el('p', 'info', t('missing_info', 'The file is no longer on disk.') + ' ' + t('missing_choose', '')));
-          var open0 = el('a', null, t('change_state', 'Change the state...')); open0.href = '#';
+          if (i.state === 'missing') box.appendChild(el('p', 'info', t('missing_info', 'The file is no longer on disk.') + ' ' + t('missing_choose', '')));
+          var stp = el('p', 'gk-icons-change-state'), open0 = el('a', null, t('change_state', 'Change the state...')); open0.href = '#';
           open0.addEventListener('click', function (e) {
             e.preventDefault(); open0.hidden = true;
             var f = stateForm(i, open0); stp.insertAdjacentElement('afterend', f);
             var s0 = f.querySelector('select[name="chosen"]'); if (s0) s0.focus();
           });
-          stp.appendChild(open0);
+          stp.appendChild(open0); box.appendChild(stp);
         }
       } else {
         var mine = (all.sets || []).filter(function (s) { return s.refs[i.name]; }).map(function (s) { return s.label; });
-        if (mine.length) { var gp = el('p'); gp.appendChild(el('strong', null, t('groups', 'Groups') + ': ')); gp.appendChild(document.createTextNode(mine.join(', '))); panel.appendChild(gp); }
+        if (mine.length) { var gp = el('p'); gp.appendChild(el('strong', null, t('groups', 'Groups') + ': ')); gp.appendChild(document.createTextNode(mine.join(', '))); box.appendChild(gp); }
       }
       var like = similar(i);
       if (like.length) {
-        panel.appendChild(el('h4', null, t('similar', 'Similar icons')));
+        box.appendChild(el('h4', null, t('similar', 'Similar icons')));
         var sg = el('div', 'gk-icons-similar');
-        like.forEach(function (j) { var b = cell(j, 24); b.addEventListener('click', function () { openPanel(j); }); sg.appendChild(b); });
-        panel.appendChild(sg);
+        like.forEach(function (j) { var b = cell(j, 24); b.addEventListener('click', function () { lib.open(j.name); }); sg.appendChild(b); });
+        box.appendChild(sg);
       }
-      panel.scrollIntoView({ block: 'nearest' });
     }
-    if (panel) panel.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !e.target.matches('input[data-gk-reason]')) { shut(); input.focus(); } });
-    // The box above the icons: the checked ones at once
+    // The box above the library: the checked ones at once
     function many(url, data, done) {
-      var refs = Object.keys(selected);
+      var refs = lib.selected();
       if (!refs.length) { tell(t('none_marked', 'Check icons first')); return; }
       var body = new URLSearchParams();
       Object.keys(data).forEach(function (k) { body.append(k, data[k]); });
@@ -576,7 +358,7 @@
         if (!j.ok) { tell(j.error || String(j.status)); return; }
         tell(t('changed', '%{n} changed').replace('%{n}', j.changed) + (j.skipped ? ', ' + t('skipped', '%{n} unchanged').replace('%{n}', j.skipped) : ''));
         if (done) done();
-        forget(); load(true);
+        forget(); lib.reload(true);
       });
     }
     // a reason field as new after it was used: the same field again, from the template
@@ -586,18 +368,20 @@
     }
     function wireBox() {
       function on(name, fn) { var b = part(name); if (b) b.addEventListener('click', function (e) { e.preventDefault(); fn(); }); }
-      on('sel-all', function () { hits.forEach(function (i) { selected[i.name] = 1; }); draw(); paintSel(); });
-      on('sel-none', function () { selected = {}; draw(); paintSel(); });
+      on('sel-all', function () { lib.selectHits(); });
+      on('sel-none', function () { lib.clearSelection(); });
       var stateF = part('sel-state'), groupF = part('sel-group');
       if (stateF) {
         stateF.addEventListener('submit', function (e) {
           if (e.defaultPrevented) return;
           e.preventDefault();
+          // core marks a form sent (data-submitted) and refuses the next send, also when this one was stopped here
+          setTimeout(function () { stateF.removeAttribute('data-submitted'); }, 0);
           // the state chosen in the select is saved for every checked icon by Save
           var r = stateF.querySelector('[name="reason"]'), ch = stateF.querySelector('select[name="chosen"]');
           if (!ch || !ch.value) { if (ch) ch.focus(); return; }
           many(root.dataset.gkIconsChooseManyUrl, { chosen: ch.value, reason: r ? r.value : '' },
-               function () { selected = {}; ch.value = ''; freshReason(stateF); });
+               function () { lib.clearSelection(); ch.value = ''; freshReason(stateF); });
         });
       }
       if (groupF) {
@@ -608,7 +392,6 @@
         });
       }
     }
-    if (admin) wireBox();
     var refreshF = part('refresh');
     if (refreshF) {
       refreshF.addEventListener('submit', function (e) {
@@ -623,11 +406,71 @@
           tell(t('refreshed', 'Read: %{added} new, %{changed} changed, %{missing} missing on disk, %{unchanged} unchanged')
             .replace('%{added}', c.added || 0).replace('%{changed}', c.changed || 0)
             .replace('%{missing}', c.missing || 0).replace('%{unchanged}', c.unchanged || 0));
-          forget(); load(true);
+          forget(); lib.reload(true);
         });
       });
     }
-    load();
+    marking = admin && boxOpen();
+    lib = L.bind(host, {
+      load: function () {
+        return list(admin).then(function (a) {
+          all = a; packOn = {};
+          (a.groups || []).forEach(function (g) { packOn[g.key] = g.state === 'active'; });
+          return visible();
+        });
+      },
+      key: function (i) { return i.name; },
+      // the whole name (pack/name) in the panel, Lista and the box to check; the short one under the picture
+      name: function (i) { return i.name; },
+      tile: function (i) { return i.short; },
+      anchor: function (i) { return 'gk-icon-' + i.name; },
+      words: function (i) { return i.low; },
+      group: function (i) { return i.group; },
+      // not by colour alone: the state in the tooltip and as the item's flag with its word (the short form, the word
+      // on hover; the screen reader hears it with the item), for the eye and the screen reader
+      title: function (i) { return admin && i.state !== 'active' ? i.name + ': ' + t('mark_' + i.state, t('state_' + i.state, i.state)) : i.name; },
+      thumb: function (i) { return S.svg(i.name, 28); },
+      decorate: function (i, node) {
+        var box = node.querySelector('[data-gk-gui-lib-check]');
+        if (box) box.title = t('mark_title', '');
+        if (!admin || i.state === 'active') return;
+        node.classList.add('gk-icons-state-' + i.state);
+        var f = stateFlag(i.state);
+        if (window.GkGui && window.GkGui.flag) window.GkGui.flag.put(node, f.text, { role: f.role, short: true });
+      },
+      facts: function (i) { return admin ? [stateFlag(i.state)] : []; },
+      panel: panel,
+      // the ranked search: exact names first, then a name that is one of the words, then one that starts with the first
+      search: function (items, q) { return search(items, q, '', all.sets); },
+      sort: function (items, how) {
+        if (how === 'group') return items; // the server's order: Redmine, GK's, then each pack, each by name
+        var out = items.slice().sort(function (a, b) { return a.short.localeCompare(b.short) || a.name.localeCompare(b.name); });
+        return how === 'name_desc' ? out.reverse() : out;
+      },
+      rows: rows,
+      cell: function (i, col) {
+        if (col === 'picture') return S.svg(i.name, 24);
+        if (col === 'group') return groupLabel(i.group);
+        // the state in its column is GK GUI Stuff's flag as an element of its own, the word after the pennant in the
+        // state's role, as on the name in the panel; the word alone where the flag is not there
+        if (col === 'state') {
+          var sf = stateFlag(i.state);
+          return window.GkGui && window.GkGui.flag && window.GkGui.flag.inline ? window.GkGui.flag.inline(sf.text, { role: sf.role }) : sf.text;
+        }
+        return null;
+      },
+      check: function () { return admin && marking; },
+      onSelect: paintSel,
+      // A click on an icon: copied as Ett klick kopierar says, "Kopierat" at the icon, and the icon in the panel
+      onPick: function (i, node) { lib.copy(form() === 'name' ? i.name : inText(i), form() === 'name' ? t('name', 'Name') : t('in_text', 'Used in text'), node); },
+      focusSearch: true
+    });
+    paintSel();
+    if (admin) {
+      var selBox = root.querySelector('.gk-icons-sel-box fieldset');
+      if (selBox && window.MutationObserver) new MutationObserver(watchBox).observe(selBox, { attributes: true, attributeFilter: ['class'] });
+      wireBox();
+    }
   }
 
   // ------------------------------------------------------------------ the Packs tab: height, place and space in text
@@ -778,6 +621,8 @@
       input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true }));
       paint();
     }
+    // the field set back from outside (a form's Undo all) says so with a change: the button follows
+    input.addEventListener('change', paint);
     b.addEventListener('click', function () { if (pop && pop.anchor === b) close(); else open(b, chosen, { current: input.value, none: true }); });
     input.type = 'hidden';
     input.insertAdjacentElement('afterend', b);
@@ -797,7 +642,12 @@
   // A tool in core's jsToolBar (the same in Redmine 6.0 to 7.0, textile and common_mark): jsToolBar.prototype.elements,
   // drawn by each toolbar's draw(). It stands before core's Help, as core's own tools do. A toolbar drawn before this
   // script ran gets the same button put in its row, as core's jsButton draws one.
-  var TOOL = 'gk_icons_insert';
+  var TOOL = 'gk_icons_insert', SPACE = 'gk_icons_insert_space';
+  // the tool's own space in a row drawn earlier: core's jsSpace, as core's draw makes one, else its span
+  function space() {
+    if (typeof window.jsSpace === 'function') { var s = new window.jsSpace(SPACE).draw(); if (s) return s; }
+    return el('span', 'jstSpacer ' + SPACE, ' ');
+  }
   function insertAt(ta, text) {
     var s = ta.selectionStart, e = ta.selectionEnd;
     ta.focus();
@@ -815,26 +665,30 @@
     if (!S.editorInsert || !J || !J.prototype || !J.prototype.elements) return;
     var label = t('insert', 'Insert icon'), icon = S.url('swatch'), els = J.prototype.elements;
     if (!els[TOOL]) {
-      // core's Help and the space before it move after the new tool; the rest keeps its order
+      // the tool and a space of its own stand just before core's Help (its key help); every other element keeps its
+      // place, so nothing depends on what core puts before Help
       var keys = Object.keys(els), at = keys.indexOf('help');
-      if (at > 0 && els[keys[at - 1]] && els[keys[at - 1]].type === 'space') at -= 1;
       var tail = at >= 0 ? keys.slice(at) : [], kept = {};
       tail.forEach(function (k) { kept[k] = els[k]; delete els[k]; });
       els[TOOL] = { type: 'button', title: label, icon: icon,
                     fn: { wiki: function () { openFor(this.toolNodes[TOOL], this.textarea); } } };
+      if (tail.length) els[SPACE] = { type: 'space' };
       tail.forEach(function (k) { els[k] = kept[k]; });
     }
-    document.querySelectorAll('.jstElements').forEach(function (bar) {
-      if (bar.querySelector('.jstb_' + TOOL)) return;
-      var block = bar.closest('.jstBlock'), ta = block && block.querySelector('.jstEditor textarea');
-      if (!ta) return;
+    // A toolbar drawn before this script ran: core's block for it (.jstBlock, jsToolBar's toolbarBlock) holds its row
+    // of tools (.jstElements) and its editor (.jstEditor) with the text area; both are looked up inside the block
+    document.querySelectorAll('.jstBlock').forEach(function (block) {
+      var bar = block.querySelector('.jstElements'), ta = block.querySelector('.jstEditor textarea');
+      if (!bar || !ta || bar.querySelector('.jstb_' + TOOL)) return;
       var b = document.createElement('button'); b.type = 'button'; b.tabIndex = 200; b.className = 'jstb_' + TOOL; b.title = label;
       b.appendChild(el('span', null, label));
       b.style.backgroundImage = 'url(' + icon + ')';
       b.onclick = function () { openFor(b, ta); return false; };
-      var help = bar.querySelector('.jstb_help'), before = help;
-      if (help && help.previousElementSibling && help.previousElementSibling.classList.contains('jstSpacer')) before = help.previousElementSibling;
-      bar.insertBefore(b, before || null);
+      // just before core's Help button (jstb_help, the class core's draw gives the tool help), with the same own space
+      // as above; without Help, last in the row
+      var help = bar.querySelector('.jstb_help');
+      bar.insertBefore(b, help);
+      if (help) bar.insertBefore(space(), help);
     });
   }
 

@@ -5,7 +5,7 @@ GK Icons gives Redmine and the GK plugins one way to write and draw icons: Redmi
 ## Features
 
 - A view helper, `gk_icon(name)`, that draws an icon the same way as Redmine's `sprite_icon`. An icon Redmine has is drawn from Redmine's sprite; an icon Redmine lacks comes from the plugin's own sprite, built from Tabler Icons v3.43.0 (the same source Redmine uses). A JavaScript counterpart (`GkIcons.svg`) draws the same icons in the browser.
-- External icon packs: a pack is a folder of `.svg` and `.png` files, with an optional `pack.yml` (name, version, license, attribution, variants, shortcodes and whether the icons take the text's colour). A pack icon is written `pack/name`, for example `fa/hammer`. Packs are found by themselves, without a setting or a restart, in `<attachments storage path>/icon_packs` and in the folders listed in the environment variable `GK_ICON_PACKS`, among other roots shown on the settings page.
+- External icon packs: a pack is a folder of `.svg` and `.png` files, with an optional `pack.yml` (name, version, license, attribution, variants, shortcodes and whether the icons take the text's colour). A pack icon is written `pack/name`, for example `fa/hammer`. Packs are found by themselves, without a setting or a restart, in `<attachments storage path>/gk/icon_packs` and in the folders listed in the environment variable `GK_ICON_PACKS`, among other roots shown on the settings page.
 - Packs are read into the database and served from there as sprites, and read again in the background when a pack folder changes. An icon whose file is removed from disk keeps its copy in the database, so texts that already use it do not break.
 - Icon states: an administrator can mark single icons or whole packs as active or disabled. Only active icons are offered in the library and the picker; the settings decide whether disabled icons and icons missing on disk are still drawn where they are already used.
 - Icon groups across packs, which icons can be put in and taken out of.
@@ -26,8 +26,8 @@ This plugin is developed and tested on Windows 11 with PostgreSQL only. That is 
 
 GK plugins:
 
-- Required: none.
-- Optional: gk_records (reasons and history for icon and pack states and groups, and the register of the switchable functions "Icons in text", "Icon library for all signed-in users" and "Insert icon in the editor"; without it all three stay off), gk_gui_stuff (the page Administration > Functions where the three functions are switched on), gk_compat (core's colour variables in the older supported series; without it the stylesheet's fallback colours are used), gk_fields (the icon groups' names and descriptions in other languages), gk_scenarios (the plugin's scenario checks).
+- Required: gk_gui_stuff (the icon library is drawn on its library: the search, the chips, the grid or the list, the page numbers, the panel, the checked icons and the copy on a click; also the page Administration > Functions where the three functions are switched on).
+- Optional: gk_records (reasons and history for icon and pack states and groups, and the register of the switchable functions "Icons in text", "Icon library for all signed-in users" and "Insert icon in the editor"; without it all three stay off), gk_compat (core's colour variables in the older supported series; without it the stylesheet's fallback colours are used), gk_fields (the icon groups' names and descriptions in other languages), gk_core_stuff 1.04.000 or later (icons in text are drawn through its shared pass for formatted text; without it the codes stay as written), gk_scenarios (the plugin's scenario checks).
 
 ## Installation
 
@@ -46,7 +46,7 @@ Icon packs are not part of the release package. Put each pack in its own folder 
 
 ### Adding an icon pack
 
-The pack roots are the machine's `icon_packs` folder, the instance's `<attachments storage path>/icon_packs` and the folders in the environment variable `GK_ICON_PACKS`. A pack is a folder with svg (or png) files and an optional `pack.yml` (key, name, version, license, attribution, homepage, `mono`, and for icons in text `text_scale`, `text_shift` and `text_gap`, which the Packs tab of the icon library can override; an icon in text is drawn as high as the text's capitals by what it draws, measured when the pack is read in, and the three fine-tune that). The folder holds the icons directly; a subfolder is read as a variant of the same icons.
+The pack roots are the machine's `icon_packs` folder, the instance's `<attachments storage path>/gk/icon_packs` and the folders in the environment variable `GK_ICON_PACKS`. A pack is a folder with svg (or png) files and an optional `pack.yml` (key, name, version, license, attribution, homepage, `mono`, and for icons in text `text_scale`, `text_shift` and `text_gap`, which the Packs tab of the icon library can override; an icon in text is drawn as high as the text's capitals by what it draws, measured when the pack is read in, and the three fine-tune that). The folder holds the icons directly; a subfolder is read as a variant of the same icons.
 
 The plugin has recipes for common packs in `config/icon_pack_recipes/`: Font Awesome Free, Line Awesome, Lucide, Bootstrap Icons, Tabler Icons, Phosphor, Heroicons, Material Symbols and flag-icons. Each recipe says where the package is downloaded, which folder in it has the icons, and the `pack.yml` to put beside them. A package with several styles (Font Awesome solid, regular and brands; Phosphor's weights) is made into one pack per style, so that each can be written in text (`:fa/house:`, `:far/house:`). To add one:
 

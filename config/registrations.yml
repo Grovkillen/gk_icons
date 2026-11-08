@@ -1,5 +1,5 @@
-# config/registrations.yml: vad pluginet lägger i de gemensamma lagren
-# (miljömanifestet 8.1). Tomma listor betyder ingenting där; nycklarna
+# config/registrations.yml: vad pluginet lägger i de gemensamma lagren.
+# Tomma listor betyder ingenting där; nycklarna
 # får inte saknas. En kontrollerad utskrift av det koden registrerar:
 # init.rb och extensions/gk_icons/ är källan, och varje rad pekar
 # på något som finns (T-REG). Det som bara är planerat står inte här
@@ -52,10 +52,10 @@ gis_layers: []
 gis_columns: []
 disk_areas:             # rötterna där paket söks (GkIcons::Packs.roots i packs.rb); varje rot som finns används
   - {key: packs_machine, path: "<redmine>/../../../icon_packs", kind: content}                    # delas av maskinens instanser
-  - {key: packs_instance, path: "<attachments>/icon_packs", kind: content}                        # bara den här instansen
+  - {key: packs_instance, path: "<attachments>/gk/icon_packs", kind: content}                     # bara den här instansen
+  - {key: packs_instance_old, path: "<attachments>/icon_packs", kind: content}                     # samma rot i tidigare versioner, läses så länge den finns
   - {key: packs_env, env: GK_ICON_PACKS, kind: content}                                           # mapparna i miljövariabeln, skilda som i PATH
 features:               # records Features (init.rb), av från början
-  - {key: icons.in_text, default: false, label: label_gk_feature_icons_in_text, help: text_gk_feature_icons_in_text}
   - {key: icons.library_for_users, default: false, label: label_gk_feature_icons_library_for_users, help: text_gk_feature_icons_library_for_users}
   - {key: icons.editor_insert, default: false, label: label_gk_feature_icons_editor_insert, help: text_gk_feature_icons_editor_insert}   # knappen Infoga ikon i cores jsToolBar (gk_icons.js)
 reasons:                # records Reasons (init.rb): platserna där en administratör skriver ett skäl
@@ -64,3 +64,5 @@ reasons:                # records Reasons (init.rb): platserna där en administr
   - {key: icons.text_fit, default: required, admin: true, label: label_gk_reason_icons_text_fit}
 appearances: {}
 access_items: []
+appearance_settings:    # records AppearanceSettings (init.rb): off from the start; icons.in_text was a function before
+  - {key: icons.in_text, group: text, modes: ["off", optional, forced], default: "off", proposal: "off", values: [], label: label_gk_icons_appearance_in_text, help: text_gk_icons_appearance_in_text}

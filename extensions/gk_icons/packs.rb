@@ -2,6 +2,7 @@
 
 require 'yaml'
 require 'zlib'
+require_relative 'gk_folders'
 
 # gk_icons packs: icon packs live outside the plugin and are found, never configured. A pack is a folder with
 # icon files in it; putting a folder in a packs root is all it takes (no setting, no code, no restart of
@@ -10,7 +11,9 @@ require 'zlib'
 # Where packs are looked for (every root that exists is used; a pack found in a later root replaces one with
 # the same key found earlier):
 #   1. <the machine's instances folder>/../icon_packs                shared by every instance on the machine
-#   2. <the instance's files>/icon_packs                             this instance only
+#   2. <the instance's files>/gk/icon_packs                          this instance only; the folder of an earlier
+#      version, <the instance's files>/icon_packs, is still read while it exists, and a pack with the same key in
+#      the new folder replaces it. Nothing is moved: an administrator moves the folders when it suits.
 #   3. the folders in the environment variable GK_ICON_PACKS (separated as PATH is: ; on Windows)
 #
 # What a pack folder may hold:
@@ -34,16 +37,19 @@ module GkIcons
     def roots
       list = []
       list << File.expand_path(Rails.root.join('..', '..', '..', 'icon_packs').to_s)
+      list << old_instance_root if File.directory?(old_instance_root)
       list << instance_root
       list.concat(ENV['GK_ICON_PACKS'].to_s.split(File::PATH_SEPARATOR).map(&:strip).reject(&:empty?).map { |p| File.expand_path(p) })
       list.uniq
     end
 
-    # Root 2: the instance's files (where Redmine keeps attachments), icon_packs
-    def instance_root
-      files = (Redmine::Configuration['attachments_storage_path'].presence || Rails.root.join('files').to_s)
-      File.expand_path(File.join(files, 'icon_packs'))
-    end
+    # Root 2: the instance's files (where Redmine keeps attachments), gk/icon_packs
+    def instance_root = File.expand_path(::GkFolders.path('icon_packs', attachments: files_root))
+
+    # Where root 2 was in the versions before it moved under gk
+    def old_instance_root = File.expand_path(File.join(files_root, 'icon_packs'))
+
+    def files_root = (Redmine::Configuration['attachments_storage_path'].presence || Rails.root.join('files').to_s)
 
     def live_roots = roots.select { |r| File.directory?(r) }
 

@@ -134,7 +134,7 @@ module GkIcons
     # ------------------------------------------------------------------ the step icons
     # icons: in a scenario gives the instance packs, states, groups and settings, as an administrator would:
     #   packs: [folder, ...]         folders under the scenario's packs/, copied into the instance's own pack root
-    #                                (<files>/icon_packs, root 2 in packs.rb) and read into the store
+    #                                (<files>/gk/icon_packs, root 2 in packs.rb) and read into the store
     #   missing: [pack/name, ...]    read in once, then its files are taken off the disk: missing, its copy kept
     #   states: [{ ref: pack/name, chosen: active|disabled, reason_key:, by: }]   whole_pack: true for a pack's own state
     #   groups: [{ key:, name_key:, members: [refs], by: }]   chosen: and reason_key: for the group's own state
@@ -270,23 +270,28 @@ module GkIcons
     end
 
     # ------------------------------------------------------------------ icons in a text
-    # What Text.apply draws, counted: a view that answers gk_icon with nothing, so the count does not hang on sprites or a
-    # request. Which codes are drawn is Text's and GkIcons.exists?'s alone (the settings for disabled and missing
-    # icons count, the function icons.in_text does not).
+    # What Text.replace draws in GK Core Stuff's pass, counted: a view that answers gk_icon with nothing, so the count
+    # does not hang on sprites or a request. Which codes are drawn is Text's and GkIcons.exists?'s alone (the settings
+    # for disabled and missing icons count, the appearance setting icons.in_text does not). Without GK Core Stuff no
+    # code is drawn, and the count is 0.
     class CountView
       include ActionView::Helpers::TagHelper
 
       def gk_icon(_name, _label = nil, **) = ''.html_safe
 
-      # the span Text.apply counts, without the icon and without measuring it
+      # the span the count looks for, without the icon and without measuring it
       def gk_icon_in_text(_ref, title) = content_tag('span', '', class: 'gk-icon-in-text', title: title)
     end
 
     def icons_in(text)
-      return 0 if text.to_s.strip.empty?
+      return 0 if text.to_s.strip.empty? || !defined?(::GkCoreStuff::FormattingProcessors)
 
       html = ::Redmine::WikiFormatting.to_html(::Setting.text_formatting, text.to_s)
-      Text.apply(html, CountView.new).to_s.scan('class="gk-icon-in-text"').size
+      view = CountView.new
+      fp = ::GkCoreStuff::FormattingProcessors
+      ctx = fp::Context.new(view: view, source: text.to_s)
+      out = fp.process(html, ctx, link: [], text: [->(run, _c) { Text.replace(run.text, view) }])
+      out.to_s.scan('class="gk-icon-in-text"').size
     end
 
     def table_missing = { 'ok' => false, 'want' => 'the tables (migrate)', 'got' => '-' }
@@ -348,7 +353,7 @@ module GkIcons
       end
 
       # icons_in_text: <issue key>, equals: N: the icons drawn in the issue's description and notes, whether the function
-      # icons.in_text is on or not
+      # icons.in_text is on or not (the appearance setting)
       ::GkScenarios::Expect.register('icons_in_text') do |ctx, e|
         issue = ::GkScenarios::Expect.issue_for(ctx, e['icons_in_text'].to_s)
         next({ 'ok' => false, 'want' => e['equals'].to_s, 'got' => 'no issue' }) unless issue

@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
 # gk_icons in text: an icon is written :pack/name: in wiki text, descriptions and notes (:fa/hammer:,
-# :flags/se:), and :gk/name: for core's icons and the plugin's own (:gk/status-done:). Replaced after the
-# formatter has made its HTML, in text only: never inside code, pre, a form field or a link's address. An
-# unknown pack or name is left as it was written.
+# :flags/se:), and :gk/name: for core's icons and the plugin's own (:gk/status-done:). Replaced in the runs of text
+# GK Core Stuff's pass (formatting_processors) hands after core has formatted the text, so never inside code, pre, a
+# form field or a link's address; the plugin never reads the finished HTML itself. An unknown pack or name is left as
+# it was written. Without GK Core Stuff the codes stay as written.
 module GkIcons
   module Text
     REF = %r{:([a-z0-9_-]+)/([a-z0-9_.+-]+):}i
-    SKIP = %w[pre code textarea script style].freeze
     # A drive path or a UNC path written with slashes, in a message (display_path)
     DISPLAY_PATH = %r{(?<![A-Za-z0-9])[A-Za-z]:/[^\s'"<>|]*|(?<![:/\w])//[^\s/'"<>|]+/[^\s'"<>|]*}
 
@@ -29,43 +29,34 @@ module GkIcons
       text.to_s.gsub(DISPLAY_PATH) { |m| m.tr('/', sep) }
     end
 
-    def apply(html, view)
-      return html unless html.is_a?(String) && html.include?(':') && html.match?(REF)
+    # One run of text as HTML with its codes as icons, or nil when it has none that exists. The run is plain text
+    # (entities decoded); what is not a code is escaped.
+    def replace(text, view)
+      return nil unless text.is_a?(String) && text.include?(':') && text.match?(REF)
 
-      doc = Nokogiri::HTML::DocumentFragment.parse(html)
       changed = false
-      doc.traverse do |node|
-        next unless node.text? && node.content.match?(REF)
-        next if node.ancestors.any? { |a| SKIP.include?(a.name) }
+      out = ERB::Util.html_escape(text).to_str.gsub(REF) do |whole|
+        pack = Regexp.last_match(1).downcase
+        name = Regexp.last_match(2).downcase
+        ref = pack == 'gk' ? name : "#{pack}/#{name}"
+        next whole unless GkIcons.exists?(ref)
 
-        before = changed
-        changed = false
-        out = ERB::Util.html_escape(node.content).to_str.gsub(REF) do |whole|
-          pack = Regexp.last_match(1).downcase
-          name = Regexp.last_match(2).downcase
-          ref = pack == 'gk' ? name : "#{pack}/#{name}"
-          next whole unless GkIcons.exists?(ref)
-
-          changed = true
-          # the size follows the text's font and what the icon draws (the stylesheet); 16 stays as the attributes' fallback
-          view.gk_icon_in_text(ref, whole.delete(':'))
-        end
-        node.replace(Nokogiri::HTML::DocumentFragment.parse(out)) if changed
-        changed ||= before
+        changed = true
+        # the size follows the text's font and what the icon draws (the stylesheet); 16 stays as the attributes' fallback
+        view.gk_icon_in_text(ref, whole.delete(':'))
       end
-      changed ? doc.to_html.html_safe : html
-    rescue StandardError => e
-      Rails.logger.warn("[gk_icons] text not read for icons: #{e.class}: #{e.message}")
-      html
+      changed ? out.html_safe : nil
     end
 
-    # Core's textilizable gives the HTML for every formatted text; ours runs after it
-    module HelperPatch
-      # A declared function, off for a new installation
-      def textilizable(*args)
-        html = super
-        GkIcons.feature?('icons.in_text') ? GkIcons::Text.apply(html, self) : html
-      end
+    # The text processor in GK Core Stuff's formatting_processors, registered in patches.rb: every run of text outside
+    # code, pre, a form field, a script and a style, also inside a link's text. An appearance setting, off for a new
+    # installation.
+    module Processor
+      module_function
+
+      def active?(_context) = GkIcons.appearance?(GkIcons::IN_TEXT)
+
+      def call(run, context) = GkIcons::Text.replace(run.text, context.view)
     end
   end
 end
