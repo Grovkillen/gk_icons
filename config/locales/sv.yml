@@ -1,9 +1,15 @@
-# Revision: 0.00.003
+# Revision: 0.00.007
+# 0.00.007: the gate's three lines name the pages, the menus and the API as what is not active
+# 0.00.006: three lines for the gate: GK GUI Stuff is missing, too old, or installed but not active (with the link's words)
+# 0.00.005: the line says which version of GK GUI Stuff is required, in place of the line that it is missing
+# 0.00.004: the line that GK GUI Stuff is missing; the change log's words are GK GUI Stuff's helper's
 sv:
   label_gk_icons_groups: "Ikongrupper"
   label_gk_icons_about: "Om pluginet"
-  label_gk_icons_changelog: "Ändringslogg"
-  text_gk_icons_changelog_english: "Ändringsloggen skrivs alltid på engelska."
+  text_gk_icons_gui_stuff_missing: "GK GUI Stuff saknas. Sidorna, menyerna och API:t i GK Icons är inte aktiva utan det."
+  text_gk_icons_gui_stuff_required: "Den installerade GK GUI Stuff är för gammal. %{version} eller senare krävs. Sidorna, menyerna och API:t i GK Icons är inte aktiva utan det."
+  text_gk_icons_gui_stuff_inactive: "GK GUI Stuff är installerat i rätt version men är inte aktivt. Skälet står på dess egen inställningssida. Sidorna, menyerna och API:t i GK Icons är inte aktiva förrän GK GUI Stuff är det."
+  label_gk_icons_gui_stuff_settings: "Inställningar för GK GUI Stuff"
   text_gk_icons_description: "Enhetlig syntax för externa ikonpaket i wiki, ärenden och andra plugins"
   label_gk_icons_own: "GK:s ikoner"
   text_gk_icons_own: "Ikoner som Redmine saknar, byggda ur samma källa som Redmines egna (Tabler Icons, MIT). Namnet är det som skrivs i gk_icon(namn)."
@@ -44,7 +50,6 @@ sv:
   label_gk_icons_sort_name_asc: "Namn (A–Ö)"
   label_gk_icons_sort_name_desc: "Namn (Ö–A)"
   label_gk_icons_sort_group: "Paket och namn"
-  text_gk_icons_needs_gui_stuff: "Ikonbiblioteket kräver GK GUI Stuff. Installera det för att se ikonerna här."
   label_gk_icons_group_core: "Redmine"
   label_gk_icons_group_own: "GK:s ikoner"
   text_gk_icons_js_search: "Sök ikon"
@@ -52,7 +57,6 @@ sv:
   text_gk_icons_js_pack_or_group: "Paket eller grupp"
   text_gk_icons_js_none: "Ingen ikon"
   text_gk_icons_js_no_match: "Ingen träff"
-  text_gk_icons_js_copied: "Kopierat"
   text_gk_icons_js_copied_code: "Kopierat: ikonens kod"
   text_gk_icons_js_showing: "visar %{shown} av %{count}"
   button_gk_icons_refresh: "Läs om från disk"
@@ -69,7 +73,6 @@ sv:
   text_gk_icons_js_missing_choose: "Ett val sparas ändå och gäller när filen finns på disk igen; till dess är läget saknas på disk."
   text_gk_icons_js_choose_active: "Aktiv"
   text_gk_icons_js_choose_disabled: "Inaktiverad"
-  text_gk_icons_js_reason: "Skäl"
   text_gk_icons_js_saved: "Sparat"
   text_gk_icons_js_refreshing: "Läser paketmapparna..."
   text_gk_icons_js_refreshed: "Inläst: %{added} nya, %{changed} ändrade, %{missing} saknas på disk, %{unchanged} oförändrade"
@@ -131,7 +134,7 @@ sv:
   text_gk_icons_choose_state: "Välj läge"
   text_gk_icons_choose_group: "Välj grupp"
   text_gk_icons_make_group_first: "Skapa en grupp på fliken Grupper först"
-  text_gk_icons_js_selected: "%{n} markerade"
+  text_gk_icons_js_selected: "Markerade"
   text_gk_icons_js_mark_title: "Markera för rutan Markerade ikoner"
   text_gk_icons_js_mark_disabled: "inaktiverad var för sig"
   text_gk_icons_js_mark_missing: "saknas på disk"

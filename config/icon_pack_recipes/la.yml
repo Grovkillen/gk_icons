@@ -1,7 +1,7 @@
 # Line Awesome (Icons8): how to add it as icon packs. Text only; no icons ship with the plugin.
 # Steps: download the file from the page, unpack it, copy each pack's "from" folder into a pack root as the pack's
 # "folder" (only the files that "match", without the ones in "exclude", and with "strip" taken off the file names),
-# put the pack's pack.yml (below) beside the icons, and press Reload from disk in the icon library.
+# put the pack's pack.yml (below) beside the icons, and press Read again from disk in the icon library.
 # One folder holds all icons: the solid ones end in -solid. The brand icons are told apart by the names in the brand
 # font ("names_from": the glyph-name of each glyph in that file); the brand names without an svg of the same name stay
 # in la.

@@ -33,9 +33,9 @@ icons:
   - { name: priority-urgent, svg: chevrons-up, used_by: palette }
   - { name: qrcode, svg: qrcode, used_by: gui_stuff }
   - { name: robot, svg: robot, used_by: workflow_rules }
-  - { name: scheme-auto, svg: brightness-half, used_by: theme_engine }
-  - { name: scheme-dark, svg: moon, used_by: theme_engine }
-  - { name: scheme-light, svg: sun, used_by: theme_engine }
+  - { name: scheme-auto, svg: brightness-half, used_by: gui_stuff }
+  - { name: scheme-dark, svg: moon, used_by: gui_stuff }
+  - { name: scheme-light, svg: sun, used_by: gui_stuff }
   - { name: shield, svg: shield-half, used_by: people }
   - { name: star, svg: star, used_by: palette }
   - { name: status-active, svg: circle-dot, used_by: palette }

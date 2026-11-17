@@ -8,6 +8,8 @@ class GkIconsController < ApplicationController
   TABS = %w[icons packs groups].freeze
   # A page of its own, as My account and Administration: no project's main menu
   self.main_menu = false
+  # Closed without GK GUI Stuff, the API and the icon files too: core's 404 (gate.rb)
+  include GkIcons::Gate::Controller
 
   # Only these actions are open, so an action added later is not public by mistake
   skip_before_action :check_if_login_required, only: %i[show pack sprite packs names index], raise: false # rest-ok: icons are not secrets

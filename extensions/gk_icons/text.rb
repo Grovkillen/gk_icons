@@ -54,7 +54,7 @@ module GkIcons
     module Processor
       module_function
 
-      def active?(_context) = GkIcons.appearance?(GkIcons::IN_TEXT)
+      def active?(_context) = GkIcons.gui? && GkIcons.appearance?(GkIcons::IN_TEXT)
 
       def call(run, context) = GkIcons::Text.replace(run.text, context.view)
     end

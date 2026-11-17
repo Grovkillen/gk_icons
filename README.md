@@ -27,7 +27,7 @@ This plugin is developed and tested on Windows 11 with PostgreSQL only. That is 
 GK plugins:
 
 - Required: gk_gui_stuff (the icon library is drawn on its library: the search, the chips, the grid or the list, the page numbers, the panel, the checked icons and the copy on a click; also the page Administration > Functions where the three functions are switched on).
-- Optional: gk_records (reasons and history for icon and pack states and groups, and the register of the switchable functions "Icons in text", "Icon library for all signed-in users" and "Insert icon in the editor"; without it all three stay off), gk_compat (core's colour variables in the older supported series; without it the stylesheet's fallback colours are used), gk_fields (the icon groups' names and descriptions in other languages), gk_core_stuff 1.04.000 or later (icons in text are drawn through its shared pass for formatted text; without it the codes stay as written), gk_scenarios (the plugin's scenario checks).
+- Optional: gk_records (reasons and history for icon and pack states and groups, and the register of the switchable functions "Icons in text", "Icon library for all signed-in users" and "Insert icon in the editor"; without it all three stay off), gk_compat (core's colour variables in the older supported series; without it the stylesheet's fallback colours are used), gk_fields (the icon groups' names and descriptions in other languages), gk_core_stuff (icons in text are drawn through its shared pass for formatted text; without it, or with a gk_core_stuff that does not have that pass, the codes stay as written), gk_scenarios (the plugin's scenario checks).
 
 ## Installation
 
@@ -53,7 +53,7 @@ The plugin has recipes for common packs in `config/icon_pack_recipes/`: Font Awe
 1. Download the file the recipe names from its page (the recipe's `verified` is the version it was tried with).
 2. Unpack it, and copy each pack's `from` folder into a pack root as a folder named by the pack's `folder`. Where the recipe has `match`, `exclude` or `strip`, copy only those files and take `strip` off their names.
 3. Save the pack's `pack.yml` from the recipe in the folder, with the version you downloaded, and copy the license file beside it.
-4. Press Reload from disk in the icon library. The packs tab lists the new packs; the recipes' `pack.yml` are shown there too.
+4. Press Read again from disk in the icon library. The packs tab lists the new packs; the recipes' `pack.yml` are shown there too.
 
 A pack without a recipe works the same way: a folder of svg files and its own `pack.yml`. The license is information for the administrator; the plugin does not decide what may be used.
 

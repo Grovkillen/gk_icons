@@ -368,5 +368,6 @@ module GkIcons
     end
   end
 
-  def self.register_scenarios! = Scenarios.register!
+  # No steps or expectations without GK GUI Stuff (gate.rb)
+  def self.register_scenarios! = (Scenarios.register! if GkIcons.gui?)
 end

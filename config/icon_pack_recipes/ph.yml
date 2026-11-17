@@ -1,7 +1,7 @@
 # Phosphor: how to add it as icon packs, one per weight. Text only; no icons ship with the plugin.
 # Steps: download the file from the page, unpack it, copy each pack's "from" folder into a pack root as the pack's
 # "folder" (with "strip" taken off the file names: acorn-bold.svg becomes acorn.svg), put the pack's pack.yml (below)
-# beside the icons, and press Reload from disk in the icon library. Duotone draws its light part in the text's colour
+# beside the icons, and press Read again from disk in the icon library. Duotone draws its light part in the text's colour
 # with opacity, so it is mono like the others.
 name: Phosphor
 homepage: https://phosphoricons.com

@@ -1,9 +1,15 @@
-# Revision: 0.00.003
+# Revision: 0.00.007
+# 0.00.007: the gate's three lines name the pages, the menus and the API as what is not active
+# 0.00.006: three lines for the gate: GK GUI Stuff is missing, too old, or installed but not active (with the link's words)
+# 0.00.005: the line says which version of GK GUI Stuff is required, in place of the line that it is missing
+# 0.00.004: the line that GK GUI Stuff is missing; the change log's words are GK GUI Stuff's helper's
 en:
   label_gk_icons_groups: "Icon groups"
   label_gk_icons_about: "About the plugin"
-  label_gk_icons_changelog: "Changelog"
-  text_gk_icons_changelog_english: "The changelog is always written in English."
+  text_gk_icons_gui_stuff_missing: "GK GUI Stuff is missing. The pages, menus and API of GK Icons are not active without it."
+  text_gk_icons_gui_stuff_required: "The installed GK GUI Stuff is too old. %{version} or later is required. The pages, menus and API of GK Icons are not active without it."
+  text_gk_icons_gui_stuff_inactive: "GK GUI Stuff is installed in the right version but is not active. Its own settings page says why. The pages, menus and API of GK Icons are not active until GK GUI Stuff is."
+  label_gk_icons_gui_stuff_settings: "GK GUI Stuff settings"
   text_gk_icons_description: "One syntax for external icon packs in wiki text, issues and other plugins"
   label_gk_icons_own: "GK's icons"
   text_gk_icons_own: "Icons Redmine lacks, built from the same source as Redmine's own (Tabler Icons, MIT). The name is what is written in gk_icon(name)."
@@ -44,7 +50,6 @@ en:
   label_gk_icons_sort_name_asc: "Name (A-Z)"
   label_gk_icons_sort_name_desc: "Name (Z-A)"
   label_gk_icons_sort_group: "Pack and name"
-  text_gk_icons_needs_gui_stuff: "The icon library requires GK GUI Stuff. Install it to see the icons here."
   label_gk_icons_group_core: "Redmine"
   label_gk_icons_group_own: "GK's icons"
   text_gk_icons_js_search: "Search icon"
@@ -52,7 +57,6 @@ en:
   text_gk_icons_js_pack_or_group: "Pack or group"
   text_gk_icons_js_none: "No icon"
   text_gk_icons_js_no_match: "No match"
-  text_gk_icons_js_copied: "Copied"
   text_gk_icons_js_copied_code: "Copied: the icon's code"
   text_gk_icons_js_showing: "showing %{shown} of %{count}"
   button_gk_icons_refresh: "Read again from disk"
@@ -69,7 +73,6 @@ en:
   text_gk_icons_js_missing_choose: "A choice is still saved and holds when the file is on disk again; until then the state is missing on disk."
   text_gk_icons_js_choose_active: "Active"
   text_gk_icons_js_choose_disabled: "Disabled"
-  text_gk_icons_js_reason: "Reason"
   text_gk_icons_js_saved: "Saved"
   text_gk_icons_js_refreshing: "Reading the pack folders..."
   text_gk_icons_js_refreshed: "Read: %{added} new, %{changed} changed, %{missing} missing on disk, %{unchanged} unchanged"
@@ -108,7 +111,7 @@ en:
   label_gk_icons_tab_packs: "Packs"
   label_gk_icons_tab_groups: "Groups"
   label_gk_icons_recipes: "Recipes for common packs"
-  text_gk_icons_recipes: "Download the file from the page, unpack it and copy each pack's folder into a pack root (the machine's %{roots}, the instance's attachments folder/gk/icon_packs or GK_ICON_PACKS) with the folder name left of the arrow. Put the pack's pack.yml beside the icons, with the version you downloaded, and press Reload from disk. A package with several styles is made into one pack per style."
+  text_gk_icons_recipes: "Download the file from the page, unpack it and copy each pack's folder into a pack root (the machine's %{roots}, the instance's attachments folder/gk/icon_packs or GK_ICON_PACKS) with the folder name left of the arrow. Put the pack's pack.yml beside the icons, with the version you downloaded, and press Read again from disk. A package with several styles is made into one pack per style."
   label_gk_icons_recipe_download: "Download"
   label_gk_icons_recipe_verified: "Tried with"
   label_gk_icons_recipe_packs: "The packs and their pack.yml"
@@ -131,7 +134,7 @@ en:
   text_gk_icons_choose_state: "Choose a state"
   text_gk_icons_choose_group: "Choose a group"
   text_gk_icons_make_group_first: "Create a group under the tab Groups first"
-  text_gk_icons_js_selected: "%{n} checked"
+  text_gk_icons_js_selected: "Checked"
   text_gk_icons_js_mark_title: "Check for the box Checked icons"
   text_gk_icons_js_mark_disabled: "disabled on its own"
   text_gk_icons_js_mark_missing: "missing on disk"

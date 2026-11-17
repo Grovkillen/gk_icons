@@ -4,29 +4,41 @@
 //   group, page through with core's page numbers, as a grid or core's list; a click copies how the icon is written
 //   and shows it in the panel beside: large, at four sizes, its aspect ratio, how it is written, its pack and groups,
 //   its state, and icons with a similar name
-//   the picker: any <input data-gk-icons-picker> becomes a button that shows the chosen icon and opens a small
-//   window with a search field and the icons, as the field search in the filter builder does. The input keeps
-//   the value (pack/name or a name), so the form works as before; without this script it is a plain text field.
-//   the editor (the function icons.editor_insert): a button in core's wiki toolbar opens the same window and puts
+//   the picker: any <input data-gk-icons-picker> becomes a button that shows the chosen icon and opens GK GUI Stuff's
+//   surface in the upper layer (GkGui.layer) with a search field and the icons, as the field search in the filter
+//   builder does. The input keeps the value (pack/name or a name), so the form works as before; without this script
+//   it is a plain text field.
+//   the editor (the function icons.editor_insert): a button in core's wiki toolbar opens the same surface and puts
 //   the chosen icon's code at the caret, as Icons in text draws it.
-// Plain DOM, no jQuery. The words come from the page (data-* on the element or window.GkIconsText).
+// GK GUI Stuff is required (the plugin does nothing without it), so its primitives are used as they are: the layer,
+// the popover, the notice, the count, the flag, the rail and its round check, and its memory (GkGui.get and set).
+// Plain DOM, no jQuery. The words come from the page (data-* on the element, or the JSON element #gk-icons-texts).
 (function () {
-  var S = window.GkIcons;
+  var S = window.GkIcons, G = window.GkGui;
   // the script can be on a page twice (the library asks for it, and so does the editor's function)
   if (!S || S.started) return;
   S.started = true;
-  var T = window.GkIconsText || {};
+  var T = {};
+  try { var tEl = document.getElementById('gk-icons-texts'); if (tEl) T = JSON.parse(tEl.textContent); } catch (e) { T = {}; }
   function t(k, d) { return T[k] || d; }
   // the mark an image's size is written with (the file stays ASCII)
   var TIMES = String.fromCharCode(215);
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  // The library's own choice (how a click copies) in GK GUI Stuff's memory, under the library's key as its other
+  // choices; the key the icon library kept it under before is carried over once
   function remember(k, v) {
+    var key = 'lib.icons.' + k;
+    if (v !== undefined) { G.set(key, v); return null; }
+    var now = G.get(key);
+    if (now != null) return now;
     try {
-      if (v === undefined) return window.localStorage.getItem('gk_icons.library.' + k);
-      window.localStorage.setItem('gk_icons.library.' + k, v);
-    } catch (e) { /* no memory in this browser: the defaults hold */ }
-    return null;
+      var was = window.localStorage.getItem('gk_icons.library.' + k);
+      if (was != null) { G.set(key, was); window.localStorage.removeItem('gk_icons.library.' + k); }
+      return was;
+    } catch (e) { return null; /* no memory in this browser: the defaults hold */ }
   }
+  // a template's content, cloned
+  function fromTemplate(sel) { var tp = document.querySelector(sel); return tp ? tp.content.cloneNode(true) : null; }
 
   var listPromise = {};
   // [{name, group, label}] : group is core, own or a pack's key. all: every icon with its state (an administrator's
@@ -70,6 +82,9 @@
   function own(i) { return i.group === 'core' || i.group === 'own'; }
   function inText(i) { return ':' + (own(i) ? 'gk/' + i.short : i.name) + ':'; }
 
+  // an icon drawn as a shape in the text's colour where nothing of its own says otherwise (the library's small
+  // pictures and Lista); a pack's own rule for its icons comes first (gk-icons-glyph is under :where in the CSS)
+  function glyph(name, size) { var g = S.svg(name, size); g.classList.add('gk-icons-glyph'); return g; }
   function cell(i, size) {
     var b = el('button', 'gk-icons-item'); b.type = 'button'; b.title = i.name;
     b.appendChild(S.svg(i.name, size || 24));
@@ -119,25 +134,31 @@
     if (!L || !host) return;
     var admin = root.dataset.gkIconsAdmin === '1';
     function part(n) { return root.querySelector('[data-gk-icons="' + n + '"]'); }
-    var said = part('said'), selCount = part('selcount'), selGroup = part('selgroup'), formSel = part('form');
-    var tpl = root.querySelector('template[data-gk-icons="reason"]');
+    var selCount = part('selcount'), selGroup = part('selgroup'), formSel = part('form');
     var all = [], packOn = {}, lib = null, marking = false;
-    // the choices the icon library kept under its own keys before it moved to the library: carried over once
+    // the choices the icon library kept under its own keys before it moved to the library: carried over once into GK
+    // GUI Stuff's memory (GkGui.get and set), under the library's keys
     try {
       var ls = window.localStorage, key = host.getAttribute('data-gk-gui-lib');
-      [['view', 'gkguistuff.view.lib.view.' + key], ['per', 'gkguistuff.lib.' + key + '.per'], ['sort', 'gkguistuff.lib.' + key + '.sort']].forEach(function (p) {
+      [['view', 'view.lib.view.' + key], ['per', 'lib.' + key + '.per'], ['sort', 'lib.' + key + '.sort']].forEach(function (p) {
         var was = ls.getItem('gk_icons.library.' + p[0]);
         if (was == null) return;
-        if (ls.getItem(p[1]) == null) ls.setItem(p[1], was);
+        if (G.get(p[1]) == null) G.set(p[1], was);
         ls.removeItem('gk_icons.library.' + p[0]);
       });
     } catch (e) { /* no memory in this browser */ }
     if (formSel && ['text', 'name'].indexOf(remember('form')) >= 0) formSel.value = remember('form');
     if (formSel) formSel.addEventListener('change', function () { remember('form', formSel.value); });
     function form() { return formSel && formSel.value === 'name' ? 'name' : 'text'; }
-    function tell(text) { if (said) said.textContent = text; else if (lib) lib.say(text); }
+    // What a save or a reading said: GK GUI Stuff's notice, alarm for a refusal
+    function tell(text, level) { G.notice.show({ level: level || 'info', text: text }); }
+    function refused(j) { tell(j.error || String(j.status), 'alarm'); }
+    // how many are checked: the words and GK GUI Stuff's count
     function paintSel() {
-      if (selCount && lib) selCount.textContent = t('selected', '%{n} checked').replace('%{n}', lib.selected().length);
+      if (!selCount || !lib) return;
+      selCount.textContent = '';
+      selCount.appendChild(document.createTextNode(t('selected', 'Checked') + ' '));
+      selCount.appendChild(G.count({ n: lib.selected().length }));
     }
     function visible() {
       // a disabled pack lists no icons, not for an administrator either
@@ -178,10 +199,10 @@
       }
       return out;
     }
-    // The checkboxes are for the box Checked icons: they show while it is open (without gui_stuff's box, always).
+    // The checkboxes are for the box Checked icons (GK GUI Stuff's box of choices): they show while it is open.
     // Folding the box unchecks every icon, so nothing stays checked out of sight.
     function boxOpen() {
-      var box = root.querySelector('.gk-icons-sel-box fieldset');
+      var box = root.querySelector('[data-gk-gui-stuff-box="icons.selection"]');
       return !!box && !(box.classList.contains('collapsible') && box.classList.contains('collapsed'));
     }
     function watchBox() {
@@ -190,23 +211,27 @@
       marking = on;
       if (lib) lib.checking();
     }
-    // The groups an icon is in, set at once (an icon of a pack, Redmine's or GK's alike)
+    // The groups an icon is in, set at once (an icon of a pack, Redmine's or GK's alike): a rail per group with GK GUI
+    // Stuff's round check, from the server's template; the icon goes in each rail's address, and the rail says Sparar,
+    // Sparat or Inte sparat (a refusal also as a notice) and puts the check back when it was not saved
     function groupBoxes(i) {
       var box = el('p', 'gk-icons-panel-groups');
       box.appendChild(el('strong', null, t('groups', 'Groups') + ': '));
-      if (!(all.sets || []).length) { box.appendChild(el('em', 'info', t('no_groups', 'No groups yet'))); return box; }
-      all.sets.forEach(function (s) {
-        var l = el('label', 'inline'), c = el('input'); c.type = 'checkbox'; c.checked = !!s.refs[i.name];
-        c.addEventListener('change', function () {
-          c.disabled = true;
-          post(root.dataset.gkIconsGroupsUrl + '/' + s.raw + '/members', { ref: i.name, member: c.checked ? '1' : '0' }).then(function (j) {
-            c.disabled = false;
-            if (!j.ok) { c.checked = !c.checked; tell(j.error || String(j.status)); return; }
-            if (c.checked) { s.refs[i.name] = 1; s.count += 1; } else { delete s.refs[i.name]; s.count -= 1; }
-            forget(); lib.refresh();
-          });
+      var rails = fromTemplate('template[data-gk-icons="group-rails"]');
+      var list = rails ? [].slice.call(rails.querySelectorAll('[data-gk-icons-group]')) : [];
+      if (!list.length) { box.appendChild(el('em', 'info', t('no_groups', 'No groups yet'))); return box; }
+      list.forEach(function (rail) {
+        var s = setOf(all.sets, 'set:' + rail.getAttribute('data-gk-icons-group'));
+        var check = rail.querySelector('[data-gk-gui-save-name="member"]');
+        if (!s || !check) return;
+        rail.setAttribute('data-gk-gui-save-url', rail.getAttribute('data-gk-gui-save-url') + '?ref=' + encodeURIComponent(i.name));
+        check.setAttribute('aria-checked', s.refs[i.name] ? 'true' : 'false');
+        rail.addEventListener('gk-gui-saved', function () {
+          var on = check.getAttribute('aria-checked') === 'true';
+          if (on && !s.refs[i.name]) { s.refs[i.name] = 1; s.count += 1; } else if (!on && s.refs[i.name]) { delete s.refs[i.name]; s.count -= 1; }
+          forget(); lib.refresh();
         });
-        l.appendChild(c); l.appendChild(document.createTextNode(' ' + s.label + ' ')); box.appendChild(l);
+        box.appendChild(rail); box.appendChild(document.createTextNode(' '));
       });
       return box;
     }
@@ -260,24 +285,16 @@
       same.sort(function (a, b) { return (a.group === i.group ? 0 : 1) - (b.group === i.group ? 0 : 1); });
       return same.slice(0, 8);
     }
-    // The state form of a pack's icon: the state in a select, Save with Cancel as a link right beside it (core's
-    // forms), and the shared reason field on its own line under them, never between them; nothing is saved before Save
+    // The state form of a pack's icon in GK GUI Stuff's popover at Change the state...: the state in a select, Spara and
+    // Avbryt side by side, and the reason (the place icons.choose) on its own line under them, from the server's
+    // template; a required reason left empty stops Spara in the box (the popover's own check), and nothing is saved
+    // before Spara. A save that went through closes the box and says so in a notice.
     function stateForm(i, opener) {
-      var f = el('form', 'gk-icons-state-form'); f.method = 'post'; f.action = root.dataset.gkIconsChooseUrl;
-      var p = el('p'), sel = el('select'), b = el('input'); b.type = 'submit'; b.value = t('save', 'Save');
-      sel.name = 'chosen'; sel.setAttribute('aria-label', t('state', 'State'));
-      ['active', 'disabled'].forEach(function (c) {
-        var o = el('option', null, t('choose_' + c, c)); o.value = c; sel.appendChild(o);
-      });
+      var content = fromTemplate('template[data-gk-icons="state"]');
+      if (!content) return;
+      var f = content.querySelector('form'), sel = f.querySelector('select[name="chosen"]'), b = f.querySelector('[type="submit"]');
       sel.value = i.state === 'disabled' ? 'disabled' : 'active';
-      p.appendChild(sel); p.appendChild(document.createTextNode(' '));
-      p.appendChild(b); p.appendChild(document.createTextNode(' '));
-      var cancel = el('a', null, t('cancel', 'Cancel')); cancel.href = '#';
-      cancel.addEventListener('click', function (e) { e.preventDefault(); f.remove(); opener.hidden = false; opener.focus(); });
-      p.appendChild(cancel); f.appendChild(p);
-      if (tpl) { var under = el('p', 'gk-icons-reason-under'); under.appendChild(tpl.content.cloneNode(true)); f.appendChild(under); }
-      // Save sends the reason that is written (records' script takes it as Use the reason does); a required one left
-      // empty stops the form (the browser, or records' script with the field's hint)
+      var d = G.popover.open(opener, content);
       f.addEventListener('submit', function (e) {
         if (e.defaultPrevented) return;
         e.preventDefault();
@@ -286,12 +303,13 @@
         b.disabled = true;
         post(root.dataset.gkIconsChooseUrl, { ref: i.name, chosen: sel.value, reason: r ? r.value : '', whole_pack: '0' }).then(function (j) {
           b.disabled = false;
-          if (!j.ok) { tell(j.error || String(j.status)); return; }
-          tell(t('saved', 'Saved') + ': ' + i.name);
+          if (!j.ok) { refused(j); return; }
+          G.popover.close(d);
+          tell(t('saved', 'Saved') + ': ' + i.name, 'notice');
           forget(); lib.reload(true);
         });
       });
-      return f;
+      sel.focus();
     }
     // The panel's content under the library's head (the name with the state's flag, and the cross): large, then at the
     // sizes it is drawn at as small tiles, its aspect ratio, how it is written as the library's code fields, its pack,
@@ -328,11 +346,7 @@
         } else {
           if (i.state === 'missing') box.appendChild(el('p', 'info', t('missing_info', 'The file is no longer on disk.') + ' ' + t('missing_choose', '')));
           var stp = el('p', 'gk-icons-change-state'), open0 = el('a', null, t('change_state', 'Change the state...')); open0.href = '#';
-          open0.addEventListener('click', function (e) {
-            e.preventDefault(); open0.hidden = true;
-            var f = stateForm(i, open0); stp.insertAdjacentElement('afterend', f);
-            var s0 = f.querySelector('select[name="chosen"]'); if (s0) s0.focus();
-          });
+          open0.addEventListener('click', function (e) { e.preventDefault(); stateForm(i, open0); });
           stp.appendChild(open0); box.appendChild(stp);
         }
       } else {
@@ -355,16 +369,16 @@
       Object.keys(data).forEach(function (k) { body.append(k, data[k]); });
       refs.forEach(function (r) { body.append('refs[]', r); });
       post(url, body).then(function (j) {
-        if (!j.ok) { tell(j.error || String(j.status)); return; }
+        if (!j.ok) { refused(j); return; }
         tell(t('changed', '%{n} changed').replace('%{n}', j.changed) + (j.skipped ? ', ' + t('skipped', '%{n} unchanged').replace('%{n}', j.skipped) : ''));
         if (done) done();
         forget(); lib.reload(true);
       });
     }
-    // a reason field as new after it was used: the same field again, from the template
-    function freshReason(f) {
-      var r = f.querySelector('[name="reason"]'); if (!r || !tpl) return;
-      (r.closest('.gk-records-reason-wrap') || r).replaceWith(tpl.content.cloneNode(true));
+    // after a save that went through: the box of the button with the reason closed, and its reason empty again
+    function fresh(f) {
+      var r = f.querySelector('[name="reason"]'); if (r) r.value = '';
+      f.querySelectorAll('details.gk-gui-stuff-popover[open]').forEach(function (d) { G.popover.close(d); });
     }
     function wireBox() {
       function on(name, fn) { var b = part(name); if (b) b.addEventListener('click', function (e) { e.preventDefault(); fn(); }); }
@@ -377,11 +391,12 @@
           e.preventDefault();
           // core marks a form sent (data-submitted) and refuses the next send, also when this one was stopped here
           setTimeout(function () { stateF.removeAttribute('data-submitted'); }, 0);
-          // the state chosen in the select is saved for every checked icon by Save
+          // the state chosen in the select is saved for every checked icon by Spara (GK GUI Stuff's button with the
+          // reason; a required reason left empty is stopped in its box before the form is sent)
           var r = stateF.querySelector('[name="reason"]'), ch = stateF.querySelector('select[name="chosen"]');
           if (!ch || !ch.value) { if (ch) ch.focus(); return; }
           many(root.dataset.gkIconsChooseManyUrl, { chosen: ch.value, reason: r ? r.value : '' },
-               function () { lib.clearSelection(); ch.value = ''; freshReason(stateF); });
+               function () { lib.clearSelection(); ch.value = ''; fresh(stateF); });
         });
       }
       if (groupF) {
@@ -401,11 +416,11 @@
         tell(t('refreshing', 'Reading the pack folders...'));
         post(refreshF.action, {}).then(function (j) {
           if (btn) btn.disabled = false;
-          if (!j.ok) { tell(j.error || String(j.status)); return; }
+          if (!j.ok) { refused(j); return; }
           var c = j.counts || {};
           tell(t('refreshed', 'Read: %{added} new, %{changed} changed, %{missing} missing on disk, %{unchanged} unchanged')
             .replace('%{added}', c.added || 0).replace('%{changed}', c.changed || 0)
-            .replace('%{missing}', c.missing || 0).replace('%{unchanged}', c.unchanged || 0));
+            .replace('%{missing}', c.missing || 0).replace('%{unchanged}', c.unchanged || 0), 'notice');
           forget(); lib.reload(true);
         });
       });
@@ -429,14 +444,14 @@
       // not by colour alone: the state in the tooltip and as the item's flag with its word (the short form, the word
       // on hover; the screen reader hears it with the item), for the eye and the screen reader
       title: function (i) { return admin && i.state !== 'active' ? i.name + ': ' + t('mark_' + i.state, t('state_' + i.state, i.state)) : i.name; },
-      thumb: function (i) { return S.svg(i.name, 28); },
+      thumb: function (i) { return glyph(i.name, 28); },
       decorate: function (i, node) {
         var box = node.querySelector('[data-gk-gui-lib-check]');
         if (box) box.title = t('mark_title', '');
         if (!admin || i.state === 'active') return;
         node.classList.add('gk-icons-state-' + i.state);
         var f = stateFlag(i.state);
-        if (window.GkGui && window.GkGui.flag) window.GkGui.flag.put(node, f.text, { role: f.role, short: true });
+        G.flag.put(node, f.text, { role: f.role, short: true });
       },
       facts: function (i) { return admin ? [stateFlag(i.state)] : []; },
       panel: panel,
@@ -449,13 +464,13 @@
       },
       rows: rows,
       cell: function (i, col) {
-        if (col === 'picture') return S.svg(i.name, 24);
+        if (col === 'picture') return glyph(i.name, 24);
         if (col === 'group') return groupLabel(i.group);
         // the state in its column is GK GUI Stuff's flag as an element of its own, the word after the pennant in the
-        // state's role, as on the name in the panel; the word alone where the flag is not there
+        // state's role, as on the name in the panel
         if (col === 'state') {
           var sf = stateFlag(i.state);
-          return window.GkGui && window.GkGui.flag && window.GkGui.flag.inline ? window.GkGui.flag.inline(sf.text, { role: sf.role }) : sf.text;
+          return G.flag.inline(sf.text, { role: sf.role });
         }
         return null;
       },
@@ -467,16 +482,18 @@
     });
     paintSel();
     if (admin) {
-      var selBox = root.querySelector('.gk-icons-sel-box fieldset');
+      var selBox = root.querySelector('[data-gk-gui-stuff-box="icons.selection"]');
       if (selBox && window.MutationObserver) new MutationObserver(watchBox).observe(selBox, { attributes: true, attributeFilter: ['class'] });
       wireBox();
     }
   }
 
   // ------------------------------------------------------------------ the Packs tab: height, place and space in text
-  // A row's link opens the window (core's modal) with the values in use and the pack's first icon in three sizes of
-  // text; the icons follow the fields while they are changed, and Save keeps them. A cleared field shows the pack's own
-  // value (its placeholder), which is also what the server keeps for it.
+  // A row's button opens GK GUI Stuff's popover (GkGui.popover) with the form of the page's template: the values in
+  // use, the pack's first icon in three sizes of text, Spara and Avbryt side by side and the reason (the place
+  // icons.text_fit) on its own line under them. The icons follow the fields while they are changed, and Spara sends the
+  // form (the server goes back to the tab with its message). A cleared field shows the pack's own value (its
+  // placeholder), which is also what the server keeps for it.
   var FIT = ['scale', 'shift', 'gap'];
   function fitPaint(form) {
     var v = {};
@@ -495,34 +512,38 @@
   }
   document.addEventListener('click', function (e) {
     var a = e.target.closest && e.target.closest('[data-gk-icons-fit-open]');
-    var box = document.getElementById('gk-icons-fit-modal');
-    if (!a || !box || typeof window.showModal !== 'function') return;
+    if (!a) return;
+    var content = fromTemplate('template[data-gk-icons="fit"]');
+    if (!content) return;
     e.preventDefault();
-    var d = a.dataset, form = box.querySelector('form');
+    var d = a.dataset, form = content.querySelector('form');
     form.action = d.url;
+    var title = form.querySelector('[data-gk-icons-fit-title]');
+    if (title) title.textContent = title.textContent + ': ' + d.name;
     FIT.forEach(function (k) {
       var f = form.querySelector('[data-gk-icons-fit="' + k + '"]'), K = k.charAt(0).toUpperCase() + k.slice(1);
       f.value = d[k] != null ? d[k] : ''; f.placeholder = d['ph' + K] != null ? d['ph' + K] : '';
       fitStep(f, f.value);
     });
     var tpl = document.querySelector('template[data-gk-icons-fit-sample="' + d.gkIconsFitOpen + '"]');
-    box.querySelectorAll('[data-gk-icons-fit-slot]').forEach(function (slot) {
+    form.querySelectorAll('[data-gk-icons-fit-slot]').forEach(function (slot) {
       slot.textContent = '';
       if (tpl) slot.appendChild(tpl.content.cloneNode(true));
     });
     fitPaint(form);
-    window.showModal('gk-icons-fit-modal', '560px', box.querySelector('h3.title').textContent + ': ' + d.name);
-    // the dialog opened at the page's corner from here (top and left 0); placed in the window's middle as core's are
-    if (window.jQuery) window.jQuery(box).dialog('option', 'position', { my: 'center', at: 'center', of: window });
+    G.popover.open(a, content, { className: 'gk-icons-fit-popover' });
   });
   document.addEventListener('input', function (e) {
     var f = e.target.closest && e.target.closest('[data-gk-icons-fit]');
     if (f && f.form) fitPaint(f.form);
   });
 
-  // ------------------------------------------------------------------ the picker's window (the picker and the editor)
-  var pop = null;
-  function close() { if (pop) { pop.el.remove(); pop.anchor.setAttribute('aria-expanded', 'false'); pop = null; } }
+  // ------------------------------------------------------------------ the picker's surface (the picker and the editor)
+  // GK GUI Stuff's surface in the upper layer (GkGui.layer): under its button, moving nothing, a sheet at the bottom of
+  // the window below 899 px; Esc, its cross and a press outside close it, and the focus goes back to the button (the
+  // editor's: to its text area). Over a popover or a layer the picker stands in, it is lifted above it.
+  var KEY = 'gk-icons-picker', pop = null;
+  function close() { if (pop) { var p = pop; pop = null; p.layer.close(false); } }
   // done(icon or null); opts: current (the chosen name, marked), none (offer No icon), back (where the focus goes after)
   function open(anchor, done, opts) {
     close();
@@ -543,20 +564,13 @@
     }
     foot.appendChild(info);
     p.appendChild(q); p.appendChild(groups); p.appendChild(ul); p.appendChild(foot);
-    document.body.appendChild(p);
-    // below the anchor; above it when there is not room below and more room above; never taller than the window
-    function place() {
-      var r = anchor.getBoundingClientRect(), vh = document.documentElement.clientHeight, h = p.offsetHeight;
-      var below = vh - r.bottom - 8, above = r.top - 8;
-      var top = (h > below && above > below) ? Math.max(8, r.top - 4 - h) : r.bottom + 4;
-      p.style.insetBlockStart = (window.scrollY + top) + 'px';
-      p.style.insetInlineStart = Math.max(8, Math.min(window.scrollX + r.left, window.scrollX + document.documentElement.clientWidth - p.offsetWidth - 8)) + 'px';
-    }
-    place();
-    anchor.setAttribute('aria-expanded', 'true');
-    pop = { el: p, anchor: anchor };
-    // Escape closes wherever the focus is in the window
-    p.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); close(); back.focus(); } });
+    var over = anchor.closest('.gk-gui-stuff-layer, .gk-gui-stuff-popover-box');
+    var layer = G.layer.open({ key: KEY, content: p, anchor: anchor, opener: anchor, above: over ? anchor : null,
+                               onClose: function (why) {
+                                 if (pop && pop.el === p) pop = null;
+                                 if (back !== anchor && (why === 'escape' || why === 'x')) back.focus();
+                               } });
+    pop = { el: p, anchor: anchor, layer: layer };
     list().then(function (all) {
       if (!pop || pop.el !== p) return;
       var group = '', hit = 0, shown = [];
@@ -600,7 +614,7 @@
         else if (e.key === 'Enter') { e.preventDefault(); if (shown[hit]) pick(shown[hit]); }
       });
       draw();
-      place();
+      layer.place();
     });
     q.focus();
   }
@@ -628,25 +642,16 @@
     input.insertAdjacentElement('afterend', b);
     paint();
   }
-  // A press outside the window closes it. The event's path is read, not the target's place now: a group chip draws the
-  // chips anew on its own mousedown, so by the time the press reaches the document its target is no longer in the window.
-  document.addEventListener('mousedown', function (e) {
-    if (!pop) return;
-    var path = e.composedPath ? e.composedPath() : [];
-    if (path.indexOf(pop.el) >= 0 || path.indexOf(pop.anchor) >= 0) return;
-    if (pop.el.contains(e.target) || pop.anchor.contains(e.target)) return;
-    close();
-  });
 
   // ------------------------------------------------------------------ the editor's toolbar (icons.editor_insert)
   // A tool in core's jsToolBar (the same in Redmine 6.0 to 7.0, textile and common_mark): jsToolBar.prototype.elements,
   // drawn by each toolbar's draw(). It stands before core's Help, as core's own tools do. A toolbar drawn before this
-  // script ran gets the same button put in its row, as core's jsButton draws one.
+  // script ran gets the same button put in its row, drawn by core's own jsButton (its icon as core draws a tool's).
   var TOOL = 'gk_icons_insert', SPACE = 'gk_icons_insert_space';
   // the tool's own space in a row drawn earlier: core's jsSpace, as core's draw makes one, else its span
   function space() {
     if (typeof window.jsSpace === 'function') { var s = new window.jsSpace(SPACE).draw(); if (s) return s; }
-    return el('span', 'jstSpacer ' + SPACE, ' ');
+    return el('span', 'jstSpacer ' + SPACE, String.fromCharCode(160));
   }
   function insertAt(ta, text) {
     var s = ta.selectionStart, e = ta.selectionEnd;
@@ -677,13 +682,14 @@
     }
     // A toolbar drawn before this script ran: core's block for it (.jstBlock, jsToolBar's toolbarBlock) holds its row
     // of tools (.jstElements) and its editor (.jstEditor) with the text area; both are looked up inside the block
+    if (typeof window.jsButton !== 'function') return;
     document.querySelectorAll('.jstBlock').forEach(function (block) {
       var bar = block.querySelector('.jstElements'), ta = block.querySelector('.jstEditor textarea');
       if (!bar || !ta || bar.querySelector('.jstb_' + TOOL)) return;
-      var b = document.createElement('button'); b.type = 'button'; b.tabIndex = 200; b.className = 'jstb_' + TOOL; b.title = label;
-      b.appendChild(el('span', null, label));
-      b.style.backgroundImage = 'url(' + icon + ')';
-      b.onclick = function () { openFor(b, ta); return false; };
+      var b = null, tool = new window.jsButton(label, function () { openFor(b, ta); }, block, 'jstb_' + TOOL);
+      tool.icon = icon;
+      b = tool.draw();
+      if (!b) return;
       // just before core's Help button (jstb_help, the class core's draw gives the tool help), with the same own space
       // as above; without Help, last in the row
       var help = bar.querySelector('.jstb_help');

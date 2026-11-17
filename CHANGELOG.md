@@ -2,6 +2,32 @@
 
 All notable changes to GK Icons are documented in this file.
 
+## 1.03.000 (2026-11-15)
+
+### Changed
+
+* Requires GK GUI Stuff 1.05.000 or later, also for everything outside the Icons tab; an older GK GUI Stuff, or one that is installed but not active, counts as missing. Without it the settings page says so and nothing is active: no helper in the views and no icons in text, no client on the pages, no icon library, no menus, no pages and no REST API (the icon files, the names and the packs answer core's 404), no functions, reason places, appearance setting, translations or history in GK Records, and no scenario steps. Another plugin that asks for an icon hears that none is there and draws its own fallback. The migrations run all the same, and the stored settings are posted back when the settings page is saved. This follows up 1.02.000, where the confirmation of a copied icon in text stood at the icon without GK GUI Stuff: GK GUI Stuff's whisper is now the only confirmation.
+* The gate compares base versions, so a candidate of the required version opens it. The settings page says why the gate is closed, in the wording shared by the GK plugins: the plugin is missing, too old, or installed but not active, and the pages, the menus and the API of GK Icons are not active. The version that is required is named only when the installed one is too old, and the line for a GK GUI Stuff that is not active links to its settings page.
+* The icon file of one of Redmine's or GK's own icons (gk_icons/i/name.svg) is stroked in the text's colour instead of black. As a mask it draws the same.
+* The library's tabs Icons, Packs and Groups are Redmine's own tabs.
+* The icon picker opens in GK GUI Stuff's surface in the upper layer, under its button (a sheet at the bottom of the window on a narrow screen); Esc, its cross and a click outside close it, and above a popover or a layer it stands over them.
+* A pack's height, place and space in text on the Packs tab are changed in GK GUI Stuff's popover at the row's button instead of Redmine's modal window, with Save and Cancel side by side and the reason under them.
+* An icon's state in the library's panel is changed in GK GUI Stuff's popover at Change the state... instead of a form under the link.
+* Every Save that changes a state (a pack's state, a group, the checked icons) is GK GUI Stuff's button with a reason: when the place's reason is required, Save... opens a box with Save and Cancel and the reason under them. Without GK Records the reason is off; the plugin's own reason field for that case is gone.
+* The groups in the library's panel are GK GUI Stuff's round checks, each in a save rail of its own, instead of check boxes: an icon is put in a group or taken out at once, and the rail says Saving, Saved or Not saved.
+* What a save, a refusal or Read again from disk says is GK GUI Stuff's notice instead of a line beside the button, and the number of checked icons is GK GUI Stuff's count.
+* A recipe's pack.yml and a group's members are GK GUI Stuff's disclosure, the members with their count; the counts after the headings on the settings page are GK GUI Stuff's count.
+* On the settings page a root folder's state (found, missing) is GK GUI Stuff's flag in the text's flow instead of Redmine's badge, how a pack draws (in the text's colour, with its own colours) is GK GUI Stuff's pill, and the changelog is drawn by GK GUI Stuff.
+* The editor's Insert icon button in a toolbar drawn before the script is drawn by Redmine's own toolbar button.
+* How a click in the library copies (the text or the name) is remembered in GK GUI Stuff's memory; the choice made before is carried over.
+* The client that draws icons in the browser, its stylesheet and the rules for an icon in text are files of their own, loaded on every page, and its settings are data in the page instead of a script; the words of the library's script are data too. A colour icon's paths without a colour of their own take the text's colour instead of black.
+* Every colour in the stylesheet goes through a role of GK GUI Stuff, the core colour only as its fallback: frames, surfaces, the secondary and the muted text, the chosen icon, links, dividers and the missing icon's alarm.
+* README: the lowest versions of the other GK plugins are no longer listed.
+
+### Fixed
+
+* While the editor's Insert icon button is on, the icon library, the settings page and pages with an icon picker load GK Icons' stylesheet, script and words once instead of twice.
+
 ## 1.02.000 (2026-11-06)
 
 ### Added

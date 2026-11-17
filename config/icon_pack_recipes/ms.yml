@@ -1,6 +1,6 @@
 # Material Symbols: how to add it as icon packs, one per style. Text only; no icons ship with the plugin.
 # Steps: download the file from the page, unpack it, copy each pack's "from" folder into a pack root as the pack's
-# "folder", put the pack's pack.yml (below) beside the icons, and press Reload from disk in the icon library.
+# "folder", put the pack's pack.yml (below) beside the icons, and press Read again from disk in the icon library.
 # Weight 400; the filled icons are icons of their own, with -fill in the name (home and home-fill).
 name: Material Symbols
 homepage: https://fonts.google.com/icons

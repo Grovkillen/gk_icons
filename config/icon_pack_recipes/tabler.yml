@@ -1,6 +1,6 @@
 # Tabler Icons, the whole set: how to add it as icon packs. Text only; no icons ship with the plugin.
 # Steps: download the file from the page, unpack it, copy each pack's "from" folder into a pack root as the pack's
-# "folder", put the pack's pack.yml (below) beside the icons, and press Reload from disk in the icon library.
+# "folder", put the pack's pack.yml (below) beside the icons, and press Read again from disk in the icon library.
 # Redmine's own icons (:gk/name:) already come from Tabler; these packs give the whole set.
 name: Tabler Icons
 homepage: https://tabler.io/icons

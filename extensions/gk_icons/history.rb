@@ -11,7 +11,8 @@ module GkIcons
 
     module_function
 
-    def on? = defined?(::GkRecords::Events) && defined?(::GkRecords::Targets)
+    # nothing without GK GUI Stuff either (gate.rb)
+    def on? = GkIcons.gui? && defined?(::GkRecords::Events) && defined?(::GkRecords::Targets) ? true : false
 
     def register_records!
       return unless on?

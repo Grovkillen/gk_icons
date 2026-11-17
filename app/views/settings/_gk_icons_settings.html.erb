@@ -1,11 +1,32 @@
-<%# gk_icons: where a disabled or missing icon is already written, the packs, About the plugin and the changelog %>
+<%# gk_icons: first what is not met, as core's own warning line (GK GUI Stuff is missing, too old with the version
+    that is required, or installed in the right version but not active with a link to its own settings page; nothing
+    of it can draw the line), then Om pluginet; with GK GUI Stuff where a disabled or missing icon is already written, the packs,
+    the icons and the changelog. Without it nothing else is drawn, and the stored settings go back as hidden fields,
+    because core's Save on this page writes what is posted over what is stored. The sections are core's fieldset.box
+    with a legend, the form GK GUI Stuff's settings frame folds and searches; their counts are GK GUI Stuff's count %>
 <% plugin = Redmine::Plugin.find(:gk_icons) %>
-<% changelog = ["CHANGELOG.#{current_language}.md", 'CHANGELOG.md'].map { |f| GkIcons::Text.join_path(plugin.directory, f) }.find { |f| File.exist?(f) } %>
-<% s = plugin.settings[:default].to_h.transform_keys(&:to_s).merge((settings || {}).to_h.transform_keys(&:to_s)) %>
+<% gui_closed = GkIcons.gui_closed %>
+<% gui = gui_closed.nil? %>
+<% if gui_closed == :missing %><p class="warning"><%= l(:text_gk_icons_gui_stuff_missing) %></p>
+<% elsif gui_closed == :old %><p class="warning"><%= l(:text_gk_icons_gui_stuff_required, version: GkIcons::GUI_STUFF_MIN) %></p>
+<% elsif gui_closed == :inactive %><p class="warning"><%= l(:text_gk_icons_gui_stuff_inactive) %> <%= link_to l(:label_gk_icons_gui_stuff_settings), plugin_settings_path('gk_gui_stuff') %></p><% end %>
 <fieldset class="box"><legend><%= l(:label_gk_icons_about) %></legend>
   <div><strong><%= plugin.name %></strong> <%= plugin.version %></div>
   <div><%= l(:text_gk_icons_description) %></div>
 </fieldset>
+<% unless gui %>
+  <% keep = nil %>
+  <% keep = lambda do |name, value|
+       case value
+       when Hash then value.flat_map { |k, v| keep.call("#{name}[#{k}]", v) }
+       when Array then value.empty? ? [hidden_field_tag("#{name}[]", '', id: nil)] : value.map { |v| hidden_field_tag("#{name}[]", v.to_s, id: nil) }
+       else [hidden_field_tag(name, value.to_s, id: nil)]
+       end
+     end %>
+  <%= safe_join((settings.is_a?(Hash) ? settings : {}).flat_map { |k, v| keep.call("settings[#{k}]", v) }) %>
+<% else %>
+<% gk_icons_assets %>
+<% s = plugin.settings[:default].to_h.transform_keys(&:to_s).merge((settings || {}).to_h.transform_keys(&:to_s)) %>
 <%# The explanations stand under the choices, the full width of the box (a p in the settings form is indented as a
     label's field); the choice for disabled icons last, right above the text that speaks of it first %>
 <fieldset class="box tabular"><legend><%= l(:label_gk_icons_where_used) %></legend>
@@ -17,13 +38,18 @@
   <% end %>
   <em class="info"><%= l(:text_gk_icons_where_used) %></em>
 </fieldset>
-<fieldset class="box"><legend><%= l(:label_gk_icons_packs) %> (<%= GkIcons::Packs.all.size %>)</legend>
+<fieldset class="box"><legend><%= l(:label_gk_icons_packs) %> <%= gk_gui_stuff_count(GkIcons::Packs.all.size) %></legend>
   <em class="info"><%= l(:text_gk_icons_packs) %></em>
   <table class="list">
     <thead><tr><th><%= l(:label_gk_icons_pack_root) %></th><th><%= l(:field_status) %></th></tr></thead>
     <tbody>
+    <%# a root's state says something and does nothing: GK GUI Stuff's flag in the text's flow, found in the role notice,
+        missing quiet (tip) %>
     <% GkIcons::Packs.roots.each do |r| %>
-      <tr><td class="name"><code><%= GkIcons::Text.display_path(r) %></code></td><% found = File.directory?(r) ? 'found' : 'missing' %><td class="status"><%= content_tag('span', l(:"label_gk_icons_root_#{found}"), class: "badge #{found == 'found' ? 'badge-status-closed' : 'badge-status-locked'} gk-icons-root-state gk-icons-root-state-#{found}") %></td></tr>
+      <% found = File.directory?(r) ? 'found' : 'missing' %>
+      <tr><td class="name"><code><%= GkIcons::Text.display_path(r) %></code></td>
+        <td class="status"><%= gk_gui_stuff_flag(l(:"label_gk_icons_root_#{found}"), inline: true, role: found == 'found' ? :notice : :tip,
+                                                 html: { class: "gk-icons-root-state gk-icons-root-state-#{found}" }) %></td></tr>
     <% end %>
     </tbody>
   </table>
@@ -45,8 +71,8 @@
         <%# a variant is a subfolder or a listed ending; the files without one are "no variant", and the pack's default
             (pack.yml default_variant, plain when not set) is what a code without a variant draws %>
         <td class="variants" title="<%= l(:text_gk_icons_variants) %>"><%= pk.variants.map { |v| (v.blank? ? l(:label_gk_icons_variant_plain) : v) + (pk.variants.size > 1 && v.to_s == pk.default_variant.to_s ? " (#{l(:label_gk_icons_variant_default)})" : '') }.join(', ') %></td>
-        <% drawn = pk.mono ? 'mono' : 'colour' %>
-        <td class="drawn"><%= content_tag('span', l(:"label_gk_icons_#{drawn}"), class: "gk-icons-drawn gk-icons-drawn-#{drawn}") %></td>
+        <%# how the pack draws: GK GUI Stuff's neutral pill %>
+        <td class="drawn"><%= gk_gui_stuff_pill(l(:"label_gk_icons_#{pk.mono ? 'mono' : 'colour'}")) %></td>
         <td class="text license"><%= pk.meta['license'].presence || '-' %></td>
         <%# a pack found on disk but not yet read into the store (a large one takes a while) says so instead of an empty
             sample %>
@@ -62,32 +88,17 @@
   </div>
   <% end %>
 </fieldset>
-<fieldset class="box"><legend><%= l(:label_gk_icons_own) %> (<%= GkIcons.own.size %>)</legend>
+<fieldset class="box"><legend><%= l(:label_gk_icons_own) %> <%= gk_gui_stuff_count(GkIcons.own.size) %></legend>
   <em class="info"><%= l(:text_gk_icons_own) %></em>
   <div class="gk-icons-grid">
     <% GkIcons.own.keys.sort.each do |n| %><span class="gk-icons-cell" title="<%= n %>"><%= gk_icon(n, n) %></span><% end %>
   </div>
 </fieldset>
 <%# a plain box like the others: the settings page folds its sections itself, so the box has no fold of its own %>
-<fieldset class="box"><legend><%= l(:label_gk_icons_core) %> (<%= GkIcons.core.size %>)</legend>
+<fieldset class="box"><legend><%= l(:label_gk_icons_core) %> <%= gk_gui_stuff_count(GkIcons.core.size) %></legend>
   <div class="gk-icons-grid">
     <% GkIcons.core.keys.sort.each do |n| %><span class="gk-icons-cell" title="<%= n %>"><%= gk_icon(n, n) %></span><% end %>
   </div>
 </fieldset>
-<style>
-  /* read in columns: top to bottom, then the next column */
-  .gk-icons-grid { columns: 190px; column-gap: 12px; }
-  .gk-icons-cell { display: flex; align-items: center; gap: 6px; margin-block-end: 4px; break-inside: avoid; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .gk-icons-packs-settings td.gk-icons-sample { white-space: nowrap; }
-  /* a root's state is core's badge (found green, missing grey, outlined as in core), in the middle of its row: core
-     lifts .badge for headings and takes the lift away again in its own lists */
-  table.list .gk-icons-root-state { inset-block-end: initial; vertical-align: middle; }
-</style>
-<% if changelog %>
-<fieldset class="box"><legend><%= l(:label_gk_icons_changelog) %></legend>
-  <% unless current_language.to_s.start_with?('en') %><div class="gk-changelog-note"><em><%= l(:text_gk_icons_changelog_english) %></em></div><% end %>
-  <details class="gk-changelog"><summary><%= l(:button_show) %></summary>
-  <div class="wiki"><%= Redmine::WikiFormatting.to_html('common_mark', File.read(changelog, encoding: 'UTF-8').sub(/\A.*?(?=^## )/m, '')).html_safe %></div>
-  </details>
-</fieldset>
+<%= gk_gui_stuff_changelog(:gk_icons) %>
 <% end %>

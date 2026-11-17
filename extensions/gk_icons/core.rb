@@ -33,7 +33,10 @@ module GkIcons
 
   # :core, :own, :pack or nil. Core's wins: an icon core has is never drawn from here. A name with a slash is
   # a pack's icon (fa/hammer); packs are folders outside the plugin (packs.rb).
+  # Without GK GUI Stuff no icon is there (gate.rb): another plugin that asks draws its own fallback.
   def source(name)
+    return nil unless GkIcons.gui?
+
     n = name.to_s
     # A disabled or missing icon where it is already written as the settings say (shown by default; hidden is as
     # an unknown name)
@@ -54,8 +57,9 @@ module GkIcons
   IN_TEXT = 'icons.in_text'
   def appearance?(key, user = ::User.current) = defined?(::GkRecords::AppearanceSettings) ? ::GkRecords::AppearanceSettings.on_for?(key, user) : false
 
-  def names = (core.keys + own.keys).uniq.sort
-  def all_names = names + Packs.names
+  # Without GK GUI Stuff no names (gate.rb)
+  def names = GkIcons.gui? ? (core.keys + own.keys).uniq.sort : []
+  def all_names = GkIcons.gui? ? names + Packs.names : []
 
   # How a pack's icons sit in text, on top of what each icon draws (Measure: the drawing as high as the capitals, on
   # the baseline): scale (the height, 1 is the capitals' height, 0.5 to 2), shift (up when positive, in em, -0.5 to
@@ -110,7 +114,8 @@ module GkIcons
 
   # The style an icon in text gets, on the element around it (span.gk-icon-in-text, so that core's own svg gets it too):
   # what the icon draws (--gk-ar, --gk-k, --gk-b, --gk-l, --gk-r) and its pack's fit (--gk-scale, --gk-shift,
-  # --gk-gap); the stylesheet (Hooks) places the icon by them. Only what differs from the stylesheet's defaults.
+  # --gk-gap); the stylesheet (gk_icons_client.css, on every page) places the icon by them. Only what differs from the
+  # stylesheet's defaults.
   def text_style(name)
     f = measure(name) || {}
     scale, shift, gap = text_fit(name.to_s.include?('/') ? name.to_s.split('/').first : '')
@@ -126,28 +131,6 @@ module GkIcons
 
   # The width over the height an icon in text is drawn at (its box), for the attributes' fallback size
   def text_ratio(name) = (measure(name) || {})[:ar] || 1.0
-
-  # The rules for an icon in text, in every heading and paragraph, Redmine's own icons (svg.icon-svg) too. The box (the
-  # icon's whole viewBox, --gk-h high) is as high as makes the part the icon draws (--gk-k of the box) the capitals'
-  # height (Measure::CAP) times the pack's scale. The room left and right of the drawing is taken away by negative side
-  # margins and the pack's gap put there instead (the drawing is not mirrored, so the two sides change places in a
-  # right-to-left page). The drawing's bottom stands on the baseline, moved by the pack's shift; the block margins make
-  # the box take no height on the line (its margin box is the baseline itself), so an icon never makes a line higher
-  # than its text, at any scale. No child combinator in the rules: the tag's content is escaped, and > would become &gt;
-  def in_text_css
-    h = 'var(--gk-h)'
-    gap = "var(--gk-gap, #{TEXT_GAP}em)"
-    left = "calc(#{gap} - #{h} * var(--gk-l, 0))"
-    right = "calc(#{gap} - #{h} * var(--gk-r, 0))"
-    sel = 'span.gk-icon-in-text svg, span.gk-icon-in-text span.gk-icon'
-    rtl = '[dir=rtl] span.gk-icon-in-text svg, [dir=rtl] span.gk-icon-in-text span.gk-icon'
-    'span.gk-icon-in-text { display: inline; line-height: 1; } ' \
-      "#{sel} { display: inline-block; --gk-h: calc(#{Measure::CAP}em * var(--gk-scale, 1) / var(--gk-k, 1)); " \
-      "inline-size: calc(#{h} * var(--gk-ar, 1)); block-size: #{h}; vertical-align: baseline; " \
-      "margin-block: calc(#{h} * var(--gk-b, 0) - var(--gk-shift, 0em) - #{h}) calc(var(--gk-shift, 0em) - #{h} * var(--gk-b, 0)); " \
-      "margin-inline: #{left} #{right}; } " \
-      "#{rtl} { margin-inline: #{right} #{left}; }"
-  end
 
   # Drawn in the text's colour (a shape) or as it is (a picture with colours of its own: a flag, an emoji)
   def mono?(name)
@@ -174,10 +157,11 @@ module GkIcons
     JS_WORDS.to_h { |k| [k, ::I18n.t(:"text_gk_icons_js_#{k}")] }.merge(CORE_WORDS.transform_keys(&:to_s).transform_values { |k| ::I18n.t(k) })
   end
 
-  # The stylesheet, the words and the script (deferred), for a page with the library, a picker or the editor's button
+  # The stylesheet, the words (a JSON element the script reads, #gk-icons-texts) and the script (deferred), for a page
+  # with the library, a picker or the editor's button
   def assets_tags(view)
     view.stylesheet_link_tag('gk_icons', plugin: 'gk_icons') +
-      view.javascript_tag("window.GkIconsText = #{js_words.to_json};") +
+      view.content_tag(:script, ERB::Util.json_escape(js_words.to_json).html_safe, type: 'application/json', id: 'gk-icons-texts') +
       view.javascript_include_tag('gk_icons', plugin: 'gk_icons', defer: true)
   end
 
@@ -187,7 +171,10 @@ module GkIcons
   end
 
   # The icon as a file of its own, for stylesheets (mask-image cannot point into a sprite)
+  # nil without GK GUI Stuff (gate.rb), as for a name that is not there
   def url(name)
+    return nil unless GkIcons.gui?
+
     if name.to_s.include?('/') && Store.ready?
       pk, n = Store.find(name)
       return nil unless pk
@@ -216,17 +203,20 @@ module GkIcons
     end
   end
 
-  # The whole icon as a standalone svg document, stroke in black (a mask needs only the shape)
+  # The whole icon as a standalone svg document, the file the controller serves and the measuring reads. The stroke
+  # is the text's colour (currentColor): a mask needs only the shape, and the element the mask is on gives the colour
   def document(name)
     body = markup(name) or return nil
-    %(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">#{body}</svg>)
+    %(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">#{body}</svg>)
   end
 
   # The helper every view has
   module Helper
     # A page with an icon picker or the library asks for the script, the stylesheet and the words once
+    # While Insert icon in the editor is on, the head hook already puts the same tags on every page; adding them again
+    # would give a second #gk-icons-texts (one id twice) and load the stylesheet and the script twice
     def gk_icons_assets
-      return if @gk_icons_assets
+      return if @gk_icons_assets || (GkIcons.gui? && GkIcons.feature?('icons.editor_insert'))
 
       @gk_icons_assets = true
       content_for(:header_tags) { GkIcons.assets_tags(self) }
@@ -260,14 +250,22 @@ module GkIcons
 
     # An icon in text as formatted text writes it (GkIcons::Text) and the Packs tab shows it: the icon in a span whose
     # title is its code; the span carries what the icon draws and its pack's fit (GkIcons.text_style), so that core's
-    # own svg is placed the same way
+    # own svg is placed the same way; data-gk-icons-code is the code a click copies (gk_icons_client.js), kept apart from
+    # the title, which core's hover tooltip empties while it shows
     def gk_icon_in_text(ref, title)
-      content_tag('span', gk_icon(ref, size: 16, fluid: true), class: 'gk-icon-in-text', title: title, style: GkIcons.text_style(ref))
+      content_tag('span', gk_icon(ref, size: 16, fluid: true), class: 'gk-icon-in-text', title: title, style: GkIcons.text_style(ref),
+                                                                  data: { gk_icons_code: title })
     end
   end
 
+
   class Hooks < Redmine::Hook::ViewListener
-    # The client's way to the same icons: where the two sprites are, and which names are ours
+    # Silent without GK GUI Stuff (gate.rb)
+    include GkIcons::Gate::Listener
+
+    # The client's way to the same icons: where the two sprites are, and which names are ours. The client itself is
+    # assets (gk_icons_client.js with gk_icons_client.css, loaded on every page, in the head so that GkIcons is there
+    # before any other script asks for it); its settings are data in the JSON element #gk-icons-config before it.
     def view_layouts_base_html_head(_context = {})
       # The store is read again in the background when a pack folder changed (no page waits for it)
       Store.sync_later
@@ -287,159 +285,14 @@ module GkIcons
         cfg.merge!(pv: Packs.stamp.abs.to_s(36),
                    packs: Packs.all.transform_values { |p| { mono: p.mono, svg: Packs.file("#{p.key}/#{p.icons.keys.first}")&.last == 'svg' } })
       end
-      style = content_tag('style', '.gk-icon { display: inline-block; vertical-align: -0.18em; flex: none; } ' \
-                                   'span.gk-icon-mono { background-color: currentColor; -webkit-mask: var(--gk-icon) center / contain no-repeat; mask: var(--gk-icon) center / contain no-repeat; } ' \
-                                   'span.gk-icon-colour { background: var(--gk-icon) center / contain no-repeat; } ' \
-                                   'svg.gk-icon.gk-icon-mono { fill: currentColor; stroke: none; } ' \
-                                   'svg.gk-icon.gk-icon-colour { fill: #000; stroke: none; } ' \
-                                   "#{GkIcons.in_text_css}",
-                           id: 'gk-icons-style')
-      out = style + javascript_tag(<<~JS)
-        window.GkIcons = (function (c) {
-          var own = {}; c.names.forEach(function (n) { own[n] = 1; });
-          var NS = 'http://www.w3.org/2000/svg';
-          return {
-            namesUrl: c.namesUrl,
-            // the editor's button (icons.editor_insert) is drawn only while the function is on
-            editorInsert: !!c.editorInsert,
-            own: function (n) { return !!own[n]; },
-            url: function (n) {
-              if (n.indexOf('/') < 0) return c.one + n + '.svg?v=' + c.v;
-              var k = n.split('/')[0], p = c.packs[k];
-              return c.pack + k + '/' + encodeURIComponent(n.slice(k.length + 1)) + (p && !p.svg ? '.png' : '.svg') + '?v=' + c.pv;
-            },
-            chunks: {},
-            // A sprite is fetched before any icon points into it, at most two at a time, and again when it fails (the
-            // server answered 500 when many were built at once, and the browser never asks again for a sprite a <use>
-            // could not load); known: the symbols it holds, so an icon left out is fetched by itself
-            loads: {}, queue: [], busy: 0,
-            load: function (url) {
-              var self = this;
-              if (!this.loads[url]) {
-                this.loads[url] = new Promise(function (resolve, reject) { self.queue.push({ url: url, resolve: resolve, reject: reject, tries: 0 }); self.pump(); });
-              }
-              return this.loads[url];
-            },
-            pump: function () {
-              var self = this;
-              while (this.busy < 2 && this.queue.length) {
-                var job = this.queue.shift();
-                this.busy += 1;
-                fetch(job.url, { credentials: 'same-origin' }).then(function (r) {
-                  if (!r.ok) throw new Error(String(r.status));
-                  return r.text();
-                }).then(function (text) {
-                  var ids = {}; text.replace(/<symbol id="([^"]+)"/g, function (m, id) { ids[id] = 1; return m; });
-                  this.resolve(ids);
-                }.bind(job), function () {
-                  var j = this;
-                  j.tries += 1;
-                  if (j.tries < 3) { setTimeout(function () { self.queue.push(j); self.pump(); }, 700 * j.tries); } else { j.reject(); }
-                }.bind(job)).then(function () { self.busy -= 1; self.pump(); });
-              }
-            },
-            // one: the icon's own file, never the sprite
-            svg: function (n, size, one) {
-              if (!one && n.indexOf('/') >= 0 && c.sprite && this.chunks[n] != null) {
-                // From the pack's sprite, the chunk known from the list of names
-                var k0 = n.split('/')[0], pk0 = c.packs[k0], sv = document.createElementNS(NS, 'svg'), us = document.createElementNS(NS, 'use');
-                var sid = ('i-' + k0 + '-' + n.slice(k0.length + 1)).replace(/[^A-Za-z0-9_.-]/g, '_');
-                sv.setAttribute('class', 'gk-icon s' + (size || 18) + ' ' + (pk0 && pk0.mono ? 'gk-icon-mono' : 'gk-icon-colour'));
-                sv.setAttribute('width', size || 18); sv.setAttribute('height', size || 18); sv.setAttribute('aria-hidden', 'true');
-                var url = c.sprite + k0 + '/' + this.chunks[n] + '.svg?v=' + c.sv, self = this;
-                sv.appendChild(us);
-                this.load(url).then(function (ids) {
-                  if (ids[sid]) { us.setAttribute('href', url + '#' + sid); return; }
-                  if (sv.parentNode) sv.parentNode.replaceChild(self.svg(n, size, true), sv);
-                }, function () { if (sv.parentNode) sv.parentNode.replaceChild(self.svg(n, size, true), sv); });
-                return sv;
-              }
-              if (n.indexOf('/') >= 0) {
-                var pk = c.packs[n.split('/')[0]], e = document.createElement('span');
-                e.className = 'gk-icon s' + (size || 18) + ' ' + (pk && pk.mono ? 'gk-icon-mono' : 'gk-icon-colour');
-                e.style.setProperty('--gk-icon', 'url(' + this.url(n) + ')');
-                e.style.inlineSize = e.style.blockSize = (size || 18) + 'px'; e.setAttribute('aria-hidden', 'true');
-                return e;
-              }
-              var s = document.createElementNS(NS, 'svg'), u = document.createElementNS(NS, 'use');
-              s.setAttribute('class', 's' + (size || 18) + ' icon-svg'); s.setAttribute('aria-hidden', 'true');
-              // core's stylesheet sizes only some s-classes (s18, s24): the size as attributes too
-              s.setAttribute('width', size || 18); s.setAttribute('height', size || 18);
-              u.setAttribute('href', (own[n] ? c.own : c.core) + '#icon--' + n);
-              s.appendChild(u);
-              return s;
-            }
-          };
-        })(#{cfg.to_json});
-      JS
-      out += in_text_copy if GkIcons.appearance?(GkIcons::IN_TEXT)
+      # A click on an icon in formatted text (an issue, a note, a wiki page) copies its code, :pack/name:, said by GK GUI
+      # Stuff's shared whisper under the icon (GkGui.copy), which closes core's hover tooltip first; an icon inside a link
+      # follows the link. Only while Icons in text is on for the person.
+      cfg[:copy] = ::I18n.t(:text_gk_icons_js_copied_code) if GkIcons.appearance?(GkIcons::IN_TEXT)
+      out = content_tag(:script, ERB::Util.json_escape(cfg.to_json).html_safe, type: 'application/json', id: 'gk-icons-config') +
+            stylesheet_link_tag('gk_icons_client', plugin: 'gk_icons') +
+            javascript_include_tag('gk_icons_client', plugin: 'gk_icons')
       editor ? out + GkIcons.assets_tags(self) : out
-    end
-
-    # A click on an icon in formatted text (an issue, a note, a wiki page) copies its code, :pack/name:, so that an icon
-    # found anywhere can be put in a note; an icon inside a link follows the link. With GK GUI Stuff it is said by the
-    # shared whisper (GkGui.copy), under the icon; core's hover tooltip closes first, so that the two never stand on top
-    # of each other. Without GK GUI Stuff it is said at the icon: with core's hover tooltip (jQuery UI's,
-    # setupHoverTooltips) the tooltip that showed the icon's code says "Copied" instead, and shows the code again when it
-    # closes (the pointer leaves); core empties the title while it shows, so the code is read where the tooltip keeps it.
-    # Without the tooltip "Copied" is a word of its own at the icon, the title taken off meanwhile and put back when the
-    # word goes.
-    def in_text_copy
-      word = ::I18n.t(:text_gk_icons_js_copied)
-      whisper = ::I18n.t(:text_gk_icons_js_copied_code)
-      sel ='span.gk-icon-in-text[title], span.gk-icon-in-text[data-gk-icons-title]'
-      style = content_tag('style', 'span.gk-icon-in-text[title], span.gk-icon-in-text[data-gk-icons-title] { cursor: copy; position: relative; } ' \
-                                   'span.gk-icon-in-text .gk-icons-copied-text { position: absolute; inset-block-end: 100%; inset-inline-start: 50%; ' \
-                                   'translate: -50% 0; z-index: 5; padding-inline: 5px; border-radius: 3px; font-size: 12px; line-height: 1.6; ' \
-                                   'white-space: nowrap; background: var(--oc-gray-9, #212529); color: var(--oc-white, #ffffff); }')
-      style + javascript_tag(<<~JS)
-        document.addEventListener('click', function (e) {
-          var s = e.target.closest && e.target.closest(#{sel.to_json});
-          if (!s || s.closest('a, .jstEditor, textarea')) return;
-          var jq = window.jQuery, tip = !!(jq && jq.fn.tooltip && jq(s).tooltip('instance'));
-          var title = s.getAttribute('title') || s.getAttribute('data-gk-icons-title') || (jq && jq(s).data('ui-tooltip-title')) || s.gkIconsCode;
-          if (!title) return;
-          s.gkIconsCode = title;
-          var code = ':' + title + ':';
-          if (window.GkGui && window.GkGui.copy) {
-            if (tip) jq(s).tooltip('close');
-            window.GkGui.copy(code, #{whisper.to_json}, s);
-            return;
-          }
-          var said = function () {
-            if (tip) {
-              if (s.gkIconsTipWas === undefined) {
-                s.gkIconsTipWas = jq(s).tooltip('option', 'content');
-                jq(s).one('tooltipclose', function () { jq(s).tooltip('option', 'content', s.gkIconsTipWas); s.gkIconsTipWas = undefined; });
-              }
-              // the tooltip that shows (the pointer is on the icon) only changes its words and closes as core's do; one
-              // that does not show (a touch) is opened and closed again by the script, as a programmatic open never
-              // closes when the pointer leaves
-              var shown = !!s.getAttribute('aria-describedby');
-              jq(s).tooltip('option', 'content', #{word.to_json});
-              if (!shown) { jq(s).tooltip('open'); setTimeout(function () { jq(s).tooltip('close'); }, 1200); }
-              return;
-            }
-            var old = s.querySelector('.gk-icons-copied-text'); if (old) old.remove();
-            if (s.hasAttribute('title')) { s.setAttribute('data-gk-icons-title', title); s.removeAttribute('title'); }
-            var n = document.createElement('span'); n.className = 'gk-icons-copied-text'; n.setAttribute('role', 'status');
-            n.textContent = #{word.to_json}; s.appendChild(n);
-            clearTimeout(s.gkIconsCopied);
-            s.gkIconsCopied = setTimeout(function () {
-              n.remove();
-              if (!s.hasAttribute('title') && s.hasAttribute('data-gk-icons-title')) s.setAttribute('title', s.getAttribute('data-gk-icons-title'));
-              s.removeAttribute('data-gk-icons-title');
-            }, 1200);
-          };
-          var old = function () {
-            var a = document.createElement('textarea'); a.value = code; a.style.position = 'fixed'; a.style.opacity = '0';
-            document.body.appendChild(a); a.select();
-            try { if (document.execCommand('copy')) said(); } catch (x) { /* nothing copied, nothing said */ }
-            a.remove();
-          };
-          if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(code).then(said, old); else old();
-        });
-      JS
     end
   end
 end

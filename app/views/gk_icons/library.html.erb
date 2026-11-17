@@ -1,28 +1,25 @@
 <%# The icon library: look through every icon there is, search, choose a group, page through; a click copies how the icon
     is written and shows it in the panel beside. Packs: a whole pack's state, only here. Groups: create, rename, state
-    with a reason, the members. Every form that changes a state has its button and records' shared reason field
-    beside it, as the other GK plugins have. %>
+    with a reason, the members. Every Save that changes a state is GK GUI Stuff's button with a reason
+    (gk_gui_stuff_reason_button, the place's mode in records' register): Spara… opens its box with Spara and Avbryt and
+    the reason under them. The tabs are core's (render_tabs), three pages of their own. %>
 <% html_title l(:label_gk_icons_library) %>
 <% gk_icons_assets %>
 <% admin = User.current.admin? %>
-<% reasons = defined?(GkRecords::Reasons) && respond_to?(:gk_records_reason_field) %>
-<% reason_field = lambda do |place, size, **opts|
-     reasons ? gk_records_reason_field(place, size: size, id: nil, **opts) : text_field_tag('reason', '', size: size, required: true, placeholder: l(:text_gk_icons_js_reason), 'aria-label': l(:text_gk_icons_js_reason), id: nil)
+<%# a reason in a box the script opens (the panel's state, a pack's place in text): GK GUI Stuff's reason as the
+    place's mode says, nothing while it is off %>
+<% reason_block = lambda do |place, id|
+     mode = GkGuiStuff::Primitives.reason_mode(place)
+     mode == 'off' ? nil : gk_gui_stuff_reason_block(required: mode == 'required', id: id, name: 'reason')
    end %>
 <% pack_role = { 'active' => :notice, 'disabled' => :tip } %>
 <h2><%= l(:label_gk_icons_library) %></h2>
 <% if admin %>
-  <div class="tabs">
-    <ul>
-      <% %w[icons packs groups].each do |t| %>
-        <li><%= link_to l("label_gk_icons_tab_#{t}"), gk_icons_library_path(tab: t), class: (@tab == t ? 'selected' : nil) %></li>
-      <% end %>
-    </ul>
-  </div>
+  <%= render_tabs(%w[icons packs groups].map { |t| { name: t, label: "label_gk_icons_tab_#{t}", url: gk_icons_library_path(tab: t) } }, @tab) %>
 <% end %>
 
 <% if @tab == 'packs' %>
-  <%# the Packs tab: a whole pack's state; the button and the reason the place icons.choose asks for beside it %>
+  <%# the Packs tab: a whole pack's state; the state in the select, saved by the button with the reason icons.choose %>
   <p class="info"><%= l(:text_gk_icons_tab_packs) %></p>
   <% if @packs.blank? %>
     <p class="nodata"><%= l(:label_no_data) %></p>
@@ -39,36 +36,30 @@
       <tr id="gk-icons-pack-<%= p.key %>" class="<%= cycle('odd', 'even') %><%= ' gk-icons-pack-off' unless st == 'active' %>">
         <%# the pack's state says something about the pack and does nothing: GK GUI Stuff's flag (a fixed state) on the
             name, in the state's role as the icons' own flags; the column Status says it as the flag's own element (the
-            word after the pennant, the word alone with a GK GUI Stuff that has no own element yet), so the flag on the name is not said
-            again to a screen reader. The latest reason is the title of both; every reason is in the pack's history in
-            records %>
+            word after the pennant), so the flag on the name is not said again to a screen reader. The latest reason is
+            the title of both; every reason is in the pack's history in records %>
         <% state_word = l("text_gk_icons_js_state_#{st}") %>
-        <td class="name" id="gk-icons-pack-<%= p.key %>-name"><%= p.name.presence || p.key %><%= gk_gui_stuff_flag(state_word, on: "#gk-icons-pack-#{p.key}-name", role: pack_role.fetch(st, :warning), said: false, title: p.reason.presence) if respond_to?(:gk_gui_stuff_flag) %></td>
+        <td class="name" id="gk-icons-pack-<%= p.key %>-name"><%= p.name.presence || p.key %><%= gk_gui_stuff_flag(state_word, on: "#gk-icons-pack-#{p.key}-name", role: pack_role.fetch(st, :warning), said: false, title: p.reason.presence) %></td>
         <td class="key"><code><%= p.key %></code></td>
         <td class="count"><%= @counts[p.key] || 0 %></td>
         <td class="text license"><%= p.license %></td>
         <td class="version"><%= p.version %></td>
-        <td class="status"><%= if respond_to?(:gk_gui_stuff_flag_legend)
-                                 gk_gui_stuff_flag(state_word, inline: true, role: pack_role.fetch(st, :warning), title: p.reason.presence,
-                                                               html: { class: "gk-icons-pack-state gk-icons-pack-state-#{st}" })
-                               else
-                                 content_tag(:span, state_word, class: "gk-icons-pack-state gk-icons-pack-state-#{st}", title: p.reason.presence)
-                               end %></td>
+        <td class="status"><%= gk_gui_stuff_flag(state_word, inline: true, role: pack_role.fetch(st, :warning), title: p.reason.presence,
+                                                 html: { class: "gk-icons-pack-state gk-icons-pack-state-#{st}" }) %></td>
         <td class="buttons">
           <% if st != 'missing' %>
-            <%# the state is chosen in the select and saved by Save, as in the Groups tab %>
+            <%# the state is chosen in the select and saved by Spara, as in the Groups tab %>
             <%= form_tag gk_icons_pack_state_path(key: p.key), method: :post, class: 'gk-icons-inline-form' do %>
               <%= select_tag 'chosen', options_for_select(%w[active disabled].map { |c| [l("text_gk_icons_js_choose_#{c}"), c] }, st),
                              'aria-label': l(:text_gk_icons_js_state), id: nil %>
-              <%= submit_tag l(:button_save), name: nil %>
-              <%= reason_field.call('icons.choose', 20) %>
+              <%= gk_gui_stuff_reason_button(l(:button_save), reason: 'icons.choose') %>
             <% end %>
           <% end %>
         </td>
         <%# how the pack's icons sit in text: the height (1 is the capitals'), the place on the line (em, plus is up) and
-            the space at the sides (em), shown here where the table has room and changed in a window (core's modal) with
-            the text at three sizes. The fields start at the values in use; the pack's own (pack.yml, else the
-            defaults) are the placeholders %>
+            the space at the sides (em), shown here where the table has room and changed in a popover at the row's
+            button (the form of the template below) with the text at three sizes. The fields start at the values in use;
+            the pack's own (pack.yml, else the defaults) are the placeholders %>
         <td class="gk-icons-pack-text">
           <% if st != 'missing' %>
             <% base = GkIcons.text_base(p.key) %>
@@ -87,10 +78,11 @@
     </tbody>
   </table>
   </div>
-  <%# the window for a pack's height and place in text (core's showModal); the script fills it from the row's link %>
-  <div id="gk-icons-fit-modal" style="display:none">
-    <h3 class="title"><%= l(:label_gk_icons_pack_text) %></h3>
+  <%# the form for a pack's height and place in text, in the popover the script opens at the row's button (GkGui.popover):
+      the fields, the line of text to see it by, Spara and Avbryt side by side, and the reason on its own line under them %>
+  <template data-gk-icons="fit">
     <%= form_tag '#', method: :post, class: 'gk-icons-fit-form' do %>
+      <p><strong data-gk-icons-fit-title><%= l(:label_gk_icons_pack_text) %></strong></p>
       <p class="info"><%= l(:text_gk_icons_pack_text) %></p>
       <div class="tabular">
         <p><label for="gk-icons-fit-scale"><%= l(:label_gk_icons_pack_text_scale) %></label>
@@ -106,18 +98,15 @@
         <h2>AM <span data-gk-icons-fit-slot></span> Zz</h2>
         <p>AM <span data-gk-icons-fit-slot></span> Zz, <%= l(:text_gk_icons_fit_line) %><br><%= l(:text_gk_icons_fit_next_line) %></p>
       </div>
-      <%# Save and Cancel side by side, the reason field under them, never between them %>
-      <p class="buttons">
-        <%= submit_tag l(:button_save), name: nil %>
-        <%= link_to l(:button_cancel), '#', onclick: 'hideModal(this); return false;' %>
-      </p>
-      <p class="gk-icons-reason-under"><%= reason_field.call('icons.text_fit', 24) %></p>
+      <% fit_reason = reason_block.call('icons.text_fit', 'gk-icons-fit-reason') %>
+      <%= gk_gui_stuff_popover_buttons(l(:button_save), keys: !fit_reason.nil?) %>
+      <%= fit_reason %>
     <% end %>
-  </div>
+  </template>
   <% end %>
 
   <%# recipes for common packs: where each is downloaded, which folder has the icons, and the pack.yml to put beside
-      them (README, Adding an icon pack) %>
+      them (README, Adding an icon pack); each pack's pack.yml in GK GUI Stuff's disclosure %>
   <% recipes = GkIcons::Recipes.all %>
   <% if recipes.any? %>
   <h3><%= l(:label_gk_icons_recipes) %></h3>
@@ -134,9 +123,10 @@
         <td class="version"><%= r['verified'] %></td>
         <td class="text packs">
           <% r['packs'].each do |p| %>
-            <details class="gk-icons-recipe-pack"><summary><code><%= p['folder'] %></code> &larr; <code><%= p['from'] %></code><% %w[match exclude strip names_from exclude_names_from].select { |k| p[k] }.each do |k| %>, <%= l("label_gk_icons_recipe_#{k}") %> <code><%= p[k] %></code><% end %></summary>
+            <% summary = capture do %><code><%= p['folder'] %></code> &larr; <code><%= p['from'] %></code><% %w[match exclude strip names_from exclude_names_from].select { |k| p[k] }.each do |k| %>, <%= l("label_gk_icons_recipe_#{k}") %> <code><%= p[k] %></code><% end %><% end %>
+            <%= gk_gui_stuff_disclosure(texts: summary, html: { class: 'gk-icons-recipe-pack' }) do %>
               <pre><%= GkIcons::Recipes.pack_yml(r, p) %></pre>
-            </details>
+            <% end %>
           <% end %>
         </td>
       </tr>
@@ -155,7 +145,7 @@
       <%= submit_tag l(:button_gk_icons_new_group), name: nil %>
     <% end %>
   <% end %>
-  <%= respond_to?(:gk_gui_stuff_choices_box) ? gk_gui_stuff_choices_box('icons.group_new', l(:label_gk_icons_new_group), open: @groups.blank?) { new_box } : content_tag(:fieldset, content_tag(:legend, l(:label_gk_icons_new_group)) + new_box, class: 'box') %>
+  <%= gk_gui_stuff_choices_box('icons.group_new', l(:label_gk_icons_new_group), open: @groups.blank?) { new_box } %>
   <% if @groups.blank? %>
     <p class="nodata"><%= l(:text_gk_icons_js_no_groups) %></p>
   <% else %>
@@ -171,9 +161,9 @@
           <%= select_tag 'chosen', options_for_select(%w[active disabled].map { |c| [l("text_gk_icons_js_choose_#{c}"), c] }, g[:state] == 'disabled' ? 'disabled' : 'active'),
                          form: fid, 'aria-label': l(:field_status), title: g[:reason].presence, id: nil %>
         </td>
+        <%# the members in GK GUI Stuff's disclosure, its count after the words %>
         <td class="members">
-          <details class="gk-icons-members">
-            <summary><%= l(:label_gk_icons_members) %> (<%= g[:refs].size %>)</summary>
+          <%= gk_gui_stuff_disclosure(texts: l(:label_gk_icons_members), count: g[:refs].size, html: { class: 'gk-icons-members' }) do %>
             <% if g[:refs].blank? %>
               <p class="nodata"><%= l(:text_gk_icons_no_members) %></p>
             <% else %>
@@ -190,13 +180,12 @@
               </table>
             <% end %>
             <p class="info"><%= l(:text_gk_icons_members_from_icons) %></p>
-          </details>
+          <% end %>
         </td>
         <td class="buttons">
           <%= form_tag gk_icons_group_path(key: g[:key]), method: :post, id: fid, class: 'gk-icons-inline-form' do %>
             <%= hidden_field_tag 'form', '1', id: nil %>
-            <%= submit_tag l(:button_save), name: nil %>
-            <%= reason_field.call('icons.group_state', 20) %>
+            <%= gk_gui_stuff_reason_button(l(:button_save), reason: 'icons.group_state') %>
           <% end %>
         </td>
       </tr>
@@ -211,26 +200,23 @@
       the library's; the icons, their panel's content, the ranked search, the copy on a click, the states and the box
       for the checked icons are this plugin's (gk_icons.js) %>
   <p><%= l(admin ? :text_gk_icons_library_admin : :text_gk_icons_library) %></p>
-  <% unless respond_to?(:gk_gui_stuff_library) %>
-    <p class="nodata"><%= l(:text_gk_icons_needs_gui_stuff) %></p>
-  <% else %>
   <div data-gk-icons-library<% if admin %> data-gk-icons-admin="1" data-gk-icons-choose-url="<%= gk_icons_choose_path %>" data-gk-icons-choose-many-url="<%= gk_icons_choose_many_path %>" data-gk-icons-groups-url="<%= gk_icons_groups_path %>" data-gk-icons-packs-url="<%= gk_icons_library_path(tab: 'packs') %>"<% end %>>
     <% if admin %>
     <div class="gk-icons-admin">
       <% sel_box = capture do %>
         <em class="info"><%= l(:text_gk_icons_selection_info) %></em>
+        <%# how many are checked: the words and GK GUI Stuff's count (GkGui.count), drawn by the script %>
         <p class="gk-icons-selection">
-          <strong data-gk-icons="selcount"></strong>
+          <span data-gk-icons="selcount"></span>
           <%= link_to l(:button_gk_icons_select_shown), '#', data: { gk_icons: 'sel-all' } %> |
           <%= link_to l(:button_gk_icons_select_none), '#', data: { gk_icons: 'sel-none' } %>
         </p>
-        <%# the state for every checked icon: chosen in the select, saved by Save %>
+        <%# the state for every checked icon: chosen in the select, saved by Spara with the reason %>
         <%= form_tag gk_icons_choose_many_path, method: :post, class: 'gk-icons-selection', data: { gk_icons: 'sel-state' } do %>
           <label for="gk_icons_sel_chosen"><%= l(:text_gk_icons_js_state) %></label>
           <%= select_tag 'chosen', options_for_select(%w[active disabled].map { |c| [l("text_gk_icons_js_choose_#{c}"), c] }),
                          prompt: l(:text_gk_icons_choose_state), required: true, id: 'gk_icons_sel_chosen' %>
-          <%= submit_tag l(:button_save), name: nil %>
-          <%= reason_field.call('icons.choose', 30) %>
+          <%= gk_gui_stuff_reason_button(l(:button_save), reason: 'icons.choose') %>
         <% end %>
         <%= form_tag gk_icons_library_path, method: :get, class: 'gk-icons-selection', data: { gk_icons: 'sel-group' } do %>
           <%= select_tag 'gk_icons_sel_group', options_for_select(@groups.map { |g| [g[:name], g[:key]] }), prompt: l(:text_gk_icons_choose_group),
@@ -241,10 +227,10 @@
         <% end %>
       <% end %>
       <div class="gk-icons-sel-box">
-        <%= respond_to?(:gk_gui_stuff_choices_box) ? gk_gui_stuff_choices_box('icons.selection', l(:label_gk_icons_selection)) { sel_box } : content_tag(:fieldset, content_tag(:legend, l(:label_gk_icons_selection)) + sel_box, class: 'box') %>
+        <%= gk_gui_stuff_choices_box('icons.selection', l(:label_gk_icons_selection)) { sel_box } %>
       </div>
+      <%# Läs om från disk: what it read is said by GK GUI Stuff's notice %>
       <%= form_tag gk_icons_refresh_path, method: :post, class: 'gk-icons-refresh', data: { gk_icons: 'refresh' } do %>
-        <span data-gk-icons="said" role="status" class="gk-icons-count"></span>
         <%= submit_tag l(:button_gk_icons_refresh), name: nil, title: GkIcons::Store.ready? ? l(:text_gk_icons_store_ready) : l(:text_gk_icons_store_empty) %>
       <% end %>
     </div>
@@ -259,8 +245,29 @@
                              per_page: GkIcons.library_per_page(Setting.per_page_options_array),
                              sorts: GkIcons::LIBRARY_SORTS.map { |k| [l(:"label_gk_icons_sort_#{k}"), k] }, sort: GkIcons::LIBRARY_SORTS.first,
                              columns: GkIcons.library_columns(admin).map { |k, label, heard| [label ? l(label) : '', k, heard ? l(heard) : nil] }, tools: copy_as) %>
-    <%# the shared reason field for the panel's state form, taken from here by the script %>
-    <% if admin %><template data-gk-icons="reason"><%= reason_field.call('icons.choose', 24) %></template><% end %>
+    <% if admin %>
+      <%# the panel's state form, in the popover the script opens at Ändra läget… (GkGui.popover): the state, Spara and
+          Avbryt side by side, the reason icons.choose on its own line under them %>
+      <template data-gk-icons="state">
+        <%= form_tag gk_icons_choose_path, method: :post, class: 'gk-icons-state-form' do %>
+          <p><label for="gk-icons-state-chosen"><%= l(:text_gk_icons_js_state) %></label>
+            <%= select_tag 'chosen', options_for_select(%w[active disabled].map { |c| [l("text_gk_icons_js_choose_#{c}"), c] }), id: 'gk-icons-state-chosen' %></p>
+          <% state_reason = reason_block.call('icons.choose', 'gk-icons-state-reason') %>
+          <%= gk_gui_stuff_popover_buttons(l(:button_save), keys: !state_reason.nil?) %>
+          <%= state_reason %>
+        <% end %>
+      </template>
+      <%# the panel's groups: a rail per group with GK GUI Stuff's round check, which puts the open icon in the group or
+          takes it out at once (the script gives each rail the icon in its address) %>
+      <template data-gk-icons="group-rails">
+        <% @groups.each do |g| %>
+          <%= gk_gui_stuff_rail(url: gk_icons_group_members_path(key: g[:key]), method: :post, tag: :span,
+                                html: { class: 'gk-icons-group-rail', data: { gk_icons_group: g[:key] } }) do %>
+            <%= gk_gui_stuff_round_check('member', false, label: g[:name]) %>
+            <span class="gk-icons-group-name"><%= g[:name] %></span>
+          <% end %>
+        <% end %>
+      </template>
+    <% end %>
   </div>
-  <% end %>
 <% end %>

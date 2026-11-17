@@ -1,0 +1,30 @@
+/* gk_icons client, on every page with the client (core.rb's hook): a pack's icon drawn in the text's colour (a shape,
+   a mask) or as it is (a picture with colours of its own), and an icon in text. */
+.gk-icon { display: inline-block; vertical-align: -0.18em; flex: none; }
+span.gk-icon-mono { background-color: currentColor; -webkit-mask: var(--gk-icon) center / contain no-repeat; mask: var(--gk-icon) center / contain no-repeat; }
+span.gk-icon-colour { background: var(--gk-icon) center / contain no-repeat; }
+svg.gk-icon.gk-icon-mono { fill: currentColor; stroke: none; }
+/* a picture's own colours stand as drawn; a shape without a fill of its own takes the text's colour */
+svg.gk-icon.gk-icon-colour { fill: currentColor; stroke: none; }
+
+/* An icon in text, in every heading and paragraph, Redmine's own icons (svg.icon-svg) too. The box (the icon's whole
+   viewBox, --gk-h high) is as high as makes the part the icon draws (--gk-k of the box) the capitals' height times the
+   pack's scale: 0.714em is GkIcons::Measure::CAP (the capital's height in core's font), and 0.075em in the gap is
+   GkIcons::TEXT_GAP (a test holds the two equal). The room left and right of the drawing is taken away by negative side
+   margins and the pack's gap put there instead (the drawing is not mirrored, so the two sides change places in a
+   right-to-left page). The drawing's bottom stands on the baseline, moved by the pack's shift; the block margins make
+   the box take no height on the line (its margin box is the baseline itself), so an icon never makes a line higher
+   than its text, at any scale. The per-icon values (--gk-ar, --gk-k, --gk-b, --gk-l, --gk-r, --gk-scale, --gk-shift,
+   --gk-gap) stand on the span (GkIcons.text_style). */
+span.gk-icon-in-text { display: inline; line-height: 1; }
+span.gk-icon-in-text svg, span.gk-icon-in-text span.gk-icon {
+  display: inline-block; --gk-h: calc(0.714em * var(--gk-scale, 1) / var(--gk-k, 1));
+  inline-size: calc(var(--gk-h) * var(--gk-ar, 1)); block-size: var(--gk-h); vertical-align: baseline;
+  margin-block: calc(var(--gk-h) * var(--gk-b, 0) - var(--gk-shift, 0em) - var(--gk-h)) calc(var(--gk-shift, 0em) - var(--gk-h) * var(--gk-b, 0));
+  margin-inline: calc(var(--gk-gap, 0.075em) - var(--gk-h) * var(--gk-l, 0)) calc(var(--gk-gap, 0.075em) - var(--gk-h) * var(--gk-r, 0));
+}
+[dir=rtl] span.gk-icon-in-text svg, [dir=rtl] span.gk-icon-in-text span.gk-icon {
+  margin-inline: calc(var(--gk-gap, 0.075em) - var(--gk-h) * var(--gk-r, 0)) calc(var(--gk-gap, 0.075em) - var(--gk-h) * var(--gk-l, 0));
+}
+/* while a click copies an icon's code (Icons in text, gk_icons_client.js marks the page) */
+.gk-icons-copy span.gk-icon-in-text[title], .gk-icons-copy span.gk-icon-in-text[data-gk-icons-code] { cursor: copy; }

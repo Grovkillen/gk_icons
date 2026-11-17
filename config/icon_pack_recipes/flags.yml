@@ -1,6 +1,6 @@
 # flag-icons: how to add it as icon packs, one per shape. Text only; no icons ship with the plugin.
 # Steps: download the file from the page, unpack it, copy each pack's "from" folder into a pack root as the pack's
-# "folder", put the pack's pack.yml (below) beside the icons, and press Reload from disk in the icon library.
+# "folder", put the pack's pack.yml (below) beside the icons, and press Read again from disk in the icon library.
 # The flags keep their colours (mono: false). Names are the country codes in lower case (se, no, eu).
 name: flag-icons
 homepage: https://flagicons.lipis.dev
